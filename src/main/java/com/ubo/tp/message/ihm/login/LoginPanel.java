@@ -1,5 +1,6 @@
 package main.java.com.ubo.tp.message.ihm.login;
 
+import java.awt.Color;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
@@ -10,11 +11,14 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 
 import javax.swing.ImageIcon;
-import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
-import javax.swing.JTextField;
+
+import main.java.com.ubo.tp.message.ihm.common.DiscordButton;
+import main.java.com.ubo.tp.message.ihm.common.DiscordRoundPanel;
+import main.java.com.ubo.tp.message.ihm.common.DiscordTextField;
+import main.java.com.ubo.tp.message.ihm.common.DiscordTheme;
 
 /**
  * Panel de connexion utilisateur.
@@ -29,7 +33,7 @@ public class LoginPanel extends JPanel {
     /**
      * Champ de saisie du tag.
      */
-    private JTextField mTagField;
+    private DiscordTextField mTagField;
 
     /**
      * Contrôleur des comptes.
@@ -75,50 +79,68 @@ public class LoginPanel extends JPanel {
      */
     private void initPanel() {
         this.setLayout(new GridBagLayout());
+        this.setBackground(DiscordTheme.BACKGROUND_DARK); // Fond principal sombre
+
+        // Conteneur "Carte" centrée
+        DiscordRoundPanel cardPanel = new DiscordRoundPanel();
+        cardPanel.setLayout(new GridBagLayout());
+        cardPanel.setBackground(DiscordTheme.BACKGROUND_SECONDARY);
 
         int row = 0;
 
         // Logo
         ImageIcon logoIcon = new ImageIcon(getClass().getResource(IMAGES_PATH + "logo_50.png"));
         JLabel logoLabel = new JLabel(logoIcon);
-        this.add(logoLabel, new GridBagConstraints(0, row++, 2, 1, 1, 0,
+        cardPanel.add(logoLabel, new GridBagConstraints(0, row++, 1, 1, 1, 0,
                 GridBagConstraints.CENTER, GridBagConstraints.NONE,
-                new Insets(20, 10, 20, 10), 0, 0));
+                new Insets(30, 40, 20, 40), 0, 0));
 
         // Titre
         JLabel titleLabel = new JLabel("Connexion");
-        titleLabel.setFont(titleLabel.getFont().deriveFont(18f));
-        this.add(titleLabel, new GridBagConstraints(0, row++, 2, 1, 1, 0,
+        titleLabel.setFont(DiscordTheme.FONT_HEADER);
+        titleLabel.setForeground(DiscordTheme.TEXT_HEADER);
+        cardPanel.add(titleLabel, new GridBagConstraints(0, row++, 1, 1, 1, 0,
                 GridBagConstraints.CENTER, GridBagConstraints.NONE,
-                new Insets(0, 10, 20, 10), 0, 0));
+                new Insets(0, 40, 20, 40), 0, 0));
+
+        // Sous-titre
+        JLabel subTitleLabel = new JLabel("Heureux de vous revoir !");
+        subTitleLabel.setFont(DiscordTheme.FONT_NORMAL);
+        subTitleLabel.setForeground(DiscordTheme.TEXT_MUTED);
+        cardPanel.add(subTitleLabel, new GridBagConstraints(0, row++, 1, 1, 1, 0,
+                GridBagConstraints.CENTER, GridBagConstraints.NONE,
+                new Insets(-15, 40, 30, 40), 0, 0));
 
         // Label tag
-        JLabel tagLabel = new JLabel("Tag utilisateur (@) :");
-        this.add(tagLabel, new GridBagConstraints(0, row, 1, 1, 0, 0,
-                GridBagConstraints.EAST, GridBagConstraints.NONE,
-                new Insets(5, 10, 5, 5), 0, 0));
+        JLabel tagLabel = new JLabel("TAG UTILISATEUR (@)");
+        tagLabel.setFont(DiscordTheme.FONT_SMALL);
+        tagLabel.setForeground(DiscordTheme.TEXT_MUTED);
+        cardPanel.add(tagLabel, new GridBagConstraints(0, row++, 1, 1, 1, 0,
+                GridBagConstraints.WEST, GridBagConstraints.NONE,
+                new Insets(10, 40, 5, 40), 0, 0));
 
         // Champ tag
-        mTagField = new JTextField(20);
-        this.add(mTagField, new GridBagConstraints(1, row++, 1, 1, 1, 0,
-                GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL,
-                new Insets(5, 5, 5, 10), 0, 0));
+        mTagField = new DiscordTextField(20);
+        cardPanel.add(mTagField, new GridBagConstraints(0, row++, 1, 1, 1, 0,
+                GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
+                new Insets(0, 40, 20, 40), 0, 0));
 
         // Bouton connexion
-        JButton loginButton = new JButton("Se connecter");
+        DiscordButton loginButton = new DiscordButton("Se connecter");
         loginButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 doLogin();
             }
         });
-        this.add(loginButton, new GridBagConstraints(0, row++, 2, 1, 1, 0,
-                GridBagConstraints.CENTER, GridBagConstraints.NONE,
-                new Insets(20, 10, 10, 10), 0, 0));
+        cardPanel.add(loginButton, new GridBagConstraints(0, row++, 1, 1, 1, 0,
+                GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
+                new Insets(10, 40, 10, 40), 0, 0));
 
         // Lien vers inscription
-        JLabel registerLink = new JLabel("<html><u>Créer un compte</u></html>");
-        registerLink.setForeground(java.awt.Color.BLUE);
+        JLabel registerLink = new JLabel("Besoin d'un compte ? S'inscrire");
+        registerLink.setFont(DiscordTheme.FONT_SMALL);
+        registerLink.setForeground(DiscordTheme.LINK_COLOR);
         registerLink.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         registerLink.addMouseListener(new MouseAdapter() {
             @Override
@@ -128,10 +150,25 @@ public class LoginPanel extends JPanel {
                             new ActionEvent(this, ActionEvent.ACTION_PERFORMED, "showRegistration"));
                 }
             }
+
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                registerLink.setText("<html><u>Besoin d'un compte ? S'inscrire</u></html>");
+            }
+
+            @Override
+            public void mouseExited(MouseEvent e) {
+                registerLink.setText("Besoin d'un compte ? S'inscrire");
+            }
         });
-        this.add(registerLink, new GridBagConstraints(0, row++, 2, 1, 1, 0,
+        cardPanel.add(registerLink, new GridBagConstraints(0, row++, 1, 1, 1, 0,
+                GridBagConstraints.WEST, GridBagConstraints.NONE,
+                new Insets(0, 40, 30, 40), 0, 0));
+
+        // Ajout de la carte au panel principal (centré)
+        this.add(cardPanel, new GridBagConstraints(0, 0, 1, 1, 1, 1,
                 GridBagConstraints.CENTER, GridBagConstraints.NONE,
-                new Insets(10, 10, 20, 10), 0, 0));
+                new Insets(0, 0, 0, 0), 0, 0));
     }
 
     /**

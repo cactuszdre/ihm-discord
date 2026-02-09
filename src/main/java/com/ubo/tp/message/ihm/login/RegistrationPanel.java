@@ -10,12 +10,15 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 
 import javax.swing.ImageIcon;
-import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
-import javax.swing.JPasswordField;
-import javax.swing.JTextField;
+
+import main.java.com.ubo.tp.message.ihm.common.DiscordButton;
+import main.java.com.ubo.tp.message.ihm.common.DiscordPasswordField;
+import main.java.com.ubo.tp.message.ihm.common.DiscordRoundPanel;
+import main.java.com.ubo.tp.message.ihm.common.DiscordTextField;
+import main.java.com.ubo.tp.message.ihm.common.DiscordTheme;
 
 /**
  * Panel de création de compte utilisateur.
@@ -30,17 +33,17 @@ public class RegistrationPanel extends JPanel {
     /**
      * Champ de saisie du nom.
      */
-    private JTextField mNameField;
+    private DiscordTextField mNameField;
 
     /**
      * Champ de saisie du tag.
      */
-    private JTextField mTagField;
+    private DiscordTextField mTagField;
 
     /**
      * Champ de saisie du mot de passe.
      */
-    private JPasswordField mPasswordField;
+    private DiscordPasswordField mPasswordField;
 
     /**
      * Contrôleur des comptes.
@@ -86,74 +89,88 @@ public class RegistrationPanel extends JPanel {
      */
     private void initPanel() {
         this.setLayout(new GridBagLayout());
+        this.setBackground(DiscordTheme.BACKGROUND_DARK);
+
+        // Conteneur "Carte" centrée
+        DiscordRoundPanel cardPanel = new DiscordRoundPanel();
+        cardPanel.setLayout(new GridBagLayout());
+        cardPanel.setBackground(DiscordTheme.BACKGROUND_SECONDARY);
 
         int row = 0;
 
         // Logo
         ImageIcon logoIcon = new ImageIcon(getClass().getResource(IMAGES_PATH + "logo_50.png"));
         JLabel logoLabel = new JLabel(logoIcon);
-        this.add(logoLabel, new GridBagConstraints(0, row++, 2, 1, 1, 0,
+        cardPanel.add(logoLabel, new GridBagConstraints(0, row++, 1, 1, 1, 0,
                 GridBagConstraints.CENTER, GridBagConstraints.NONE,
-                new Insets(20, 10, 20, 10), 0, 0));
+                new Insets(30, 40, 10, 40), 0, 0));
 
         // Titre
         JLabel titleLabel = new JLabel("Créer un compte");
-        titleLabel.setFont(titleLabel.getFont().deriveFont(18f));
-        this.add(titleLabel, new GridBagConstraints(0, row++, 2, 1, 1, 0,
+        titleLabel.setFont(DiscordTheme.FONT_HEADER);
+        titleLabel.setForeground(DiscordTheme.TEXT_HEADER);
+        cardPanel.add(titleLabel, new GridBagConstraints(0, row++, 1, 1, 1, 0,
                 GridBagConstraints.CENTER, GridBagConstraints.NONE,
-                new Insets(0, 10, 20, 10), 0, 0));
+                new Insets(0, 40, 20, 40), 0, 0));
 
         // Label nom
-        JLabel nameLabel = new JLabel("Nom :");
-        this.add(nameLabel, new GridBagConstraints(0, row, 1, 1, 0, 0,
-                GridBagConstraints.EAST, GridBagConstraints.NONE,
-                new Insets(5, 10, 5, 5), 0, 0));
+        JLabel nameLabel = new JLabel("NOM");
+        nameLabel.setFont(DiscordTheme.FONT_SMALL);
+        nameLabel.setForeground(DiscordTheme.TEXT_MUTED);
+        cardPanel.add(nameLabel, new GridBagConstraints(0, row++, 1, 1, 1, 0,
+                GridBagConstraints.WEST, GridBagConstraints.NONE,
+                new Insets(10, 40, 5, 40), 0, 0));
 
         // Champ nom
-        mNameField = new JTextField(20);
-        this.add(mNameField, new GridBagConstraints(1, row++, 1, 1, 1, 0,
-                GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL,
-                new Insets(5, 5, 5, 10), 0, 0));
+        mNameField = new DiscordTextField(20);
+        cardPanel.add(mNameField, new GridBagConstraints(0, row++, 1, 1, 1, 0,
+                GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
+                new Insets(0, 40, 0, 40), 0, 0));
 
         // Label tag
-        JLabel tagLabel = new JLabel("Tag (@) :");
-        this.add(tagLabel, new GridBagConstraints(0, row, 1, 1, 0, 0,
-                GridBagConstraints.EAST, GridBagConstraints.NONE,
-                new Insets(5, 10, 5, 5), 0, 0));
+        JLabel tagLabel = new JLabel("TAG (@)");
+        tagLabel.setFont(DiscordTheme.FONT_SMALL);
+        tagLabel.setForeground(DiscordTheme.TEXT_MUTED);
+        cardPanel.add(tagLabel, new GridBagConstraints(0, row++, 1, 1, 1, 0,
+                GridBagConstraints.WEST, GridBagConstraints.NONE,
+                new Insets(15, 40, 5, 40), 0, 0));
 
         // Champ tag
-        mTagField = new JTextField(20);
-        this.add(mTagField, new GridBagConstraints(1, row++, 1, 1, 1, 0,
-                GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL,
-                new Insets(5, 5, 5, 10), 0, 0));
+        mTagField = new DiscordTextField(20);
+        cardPanel.add(mTagField, new GridBagConstraints(0, row++, 1, 1, 1, 0,
+                GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
+                new Insets(0, 40, 0, 40), 0, 0));
 
         // Label mot de passe
-        JLabel passwordLabel = new JLabel("Mot de passe :");
-        this.add(passwordLabel, new GridBagConstraints(0, row, 1, 1, 0, 0,
-                GridBagConstraints.EAST, GridBagConstraints.NONE,
-                new Insets(5, 10, 5, 5), 0, 0));
+        JLabel passwordLabel = new JLabel("MOT DE PASSE");
+        passwordLabel.setFont(DiscordTheme.FONT_SMALL);
+        passwordLabel.setForeground(DiscordTheme.TEXT_MUTED);
+        cardPanel.add(passwordLabel, new GridBagConstraints(0, row++, 1, 1, 1, 0,
+                GridBagConstraints.WEST, GridBagConstraints.NONE,
+                new Insets(15, 40, 5, 40), 0, 0));
 
         // Champ mot de passe
-        mPasswordField = new JPasswordField(20);
-        this.add(mPasswordField, new GridBagConstraints(1, row++, 1, 1, 1, 0,
-                GridBagConstraints.WEST, GridBagConstraints.HORIZONTAL,
-                new Insets(5, 5, 5, 10), 0, 0));
+        mPasswordField = new DiscordPasswordField(20);
+        cardPanel.add(mPasswordField, new GridBagConstraints(0, row++, 1, 1, 1, 0,
+                GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
+                new Insets(0, 40, 0, 40), 0, 0));
 
         // Bouton créer
-        JButton registerButton = new JButton("Créer le compte");
+        DiscordButton registerButton = new DiscordButton("Continuer");
         registerButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 doRegister();
             }
         });
-        this.add(registerButton, new GridBagConstraints(0, row++, 2, 1, 1, 0,
-                GridBagConstraints.CENTER, GridBagConstraints.NONE,
-                new Insets(20, 10, 10, 10), 0, 0));
+        cardPanel.add(registerButton, new GridBagConstraints(0, row++, 1, 1, 1, 0,
+                GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
+                new Insets(30, 40, 10, 40), 0, 0));
 
         // Lien vers login
-        JLabel loginLink = new JLabel("<html><u>J'ai déjà un compte</u></html>");
-        loginLink.setForeground(java.awt.Color.BLUE);
+        JLabel loginLink = new JLabel("Tu as déjà un compte ?");
+        loginLink.setFont(DiscordTheme.FONT_SMALL);
+        loginLink.setForeground(DiscordTheme.LINK_COLOR);
         loginLink.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         loginLink.addMouseListener(new MouseAdapter() {
             @Override
@@ -163,10 +180,25 @@ public class RegistrationPanel extends JPanel {
                             new ActionEvent(this, ActionEvent.ACTION_PERFORMED, "showLogin"));
                 }
             }
+
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                loginLink.setText("<html><u>Tu as déjà un compte ?</u></html>");
+            }
+
+            @Override
+            public void mouseExited(MouseEvent e) {
+                loginLink.setText("Tu as déjà un compte ?");
+            }
         });
-        this.add(loginLink, new GridBagConstraints(0, row++, 2, 1, 1, 0,
+        cardPanel.add(loginLink, new GridBagConstraints(0, row++, 1, 1, 1, 0,
+                GridBagConstraints.WEST, GridBagConstraints.NONE,
+                new Insets(0, 40, 30, 40), 0, 0));
+
+        // Ajout au panel principal
+        this.add(cardPanel, new GridBagConstraints(0, 0, 1, 1, 1, 1,
                 GridBagConstraints.CENTER, GridBagConstraints.NONE,
-                new Insets(10, 10, 20, 10), 0, 0));
+                new Insets(0, 0, 0, 0), 0, 0));
     }
 
     /**

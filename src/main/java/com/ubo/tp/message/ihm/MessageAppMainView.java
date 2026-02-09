@@ -14,6 +14,7 @@ import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 
+import main.java.com.ubo.tp.message.ihm.common.DiscordTheme;
 import main.java.com.ubo.tp.message.ihm.login.AccountController;
 import main.java.com.ubo.tp.message.ihm.login.LoginPanel;
 import main.java.com.ubo.tp.message.ihm.login.RegistrationPanel;
@@ -134,6 +135,7 @@ public class MessageAppMainView extends JFrame {
     private void initPanels(AccountController accountController) {
         mCardLayout = new CardLayout();
         mContentPanel = new JPanel(mCardLayout);
+        mContentPanel.setBackground(DiscordTheme.BACKGROUND_DARK); // Fond général
 
         // Panel de login
         mLoginPanel = new LoginPanel(accountController);
@@ -161,6 +163,7 @@ public class MessageAppMainView extends JFrame {
 
         // Panel principal (placeholder pour l'instant)
         mMainPanel = new JPanel(new BorderLayout());
+        mMainPanel.setBackground(DiscordTheme.BACKGROUND_DARK);
 
         // Ajout des cartes
         mContentPanel.add(mLoginPanel, CARD_LOGIN);

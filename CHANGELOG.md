@@ -1,5 +1,23 @@
 # Changelog
 
+## [1.2.0] - 2026-02-09
+
+### Ajouté
+- **Thème Discord** : refonte graphique complète de l'interface de connexion et d'inscription.
+  - **Couleurs** : utilisation de la palette Discord (Dark Theme `#36393f`, Blurple `#5865F2`, Green `#57F287`, Red `#ED4245`).
+  - **Composants personnalisés** :
+    - `DiscordButton` : boutons sans bordure, coins arrondis, effet hover.
+    - `DiscordTextField` / `DiscordPasswordField` : champs de saisie sur fond sombre avec padding.
+    - `DiscordRoundPanel` : conteneur avec coins arrondis pour les formulaires.
+    - `DiscordTheme` : classe utilitaire centralisant les constantes de style.
+
+### Modifié
+- **`LoginPanel`** : interface centrée dans une "carte", logo UBO, champs et boutons stylisés.
+- **`RegistrationPanel`** : formulaire d'inscription cohérent avec le nouveau thème.
+- **`MessageAppMainView`** : fond de fenêtre adapté au thème sombre.
+
+---
+
 ## [1.1.0] - 2026-02-09
 
 ### Ajouté
@@ -18,15 +36,8 @@
 ## [1.0.0] - 2026-02-09
 
 ### Ajouté
-- **Observateur de base de données** (`MessageAppDatabaseObserver.java`) : affiche dans la console tous les événements de modification de la base (ajout, suppression, modification d'utilisateurs, messages et canaux).
-- **Fenêtre principale** (`MessageAppMainView.java`) : JFrame avec titre "MessageApp" et icône UBO (`logo_20.png`).
-- **Barre de menu** :
-  - Menu **"Fichier"** avec entrée **"Quitter"** (icône `exitIcon_20.png`, tooltip "Fermer l'application").
-  - Menu **"?"** avec entrée **"A propos"**.
-- **Boîte de dialogue "A propos"** : affiche le logo UBO (`logo_50.png`), "UBO M2-TIIL" et "Département Informatique".
-- **Sélecteur de répertoire** (`JFileChooser`) : s'affiche au lancement pour choisir le répertoire d'échange.
-- **Look&Feel système** : utilisation du Look&Feel natif Windows via `UIManager.setLookAndFeel()`.
-
-### Modifié
-- **`DataManager.java`** : passage en `public` des méthodes `addObserver()` et `removeObserver()`.
-- **`MessageApp.java`** : implémentation des méthodes `initLookAndFeel()`, `initGui()`, `initDirectory()` et `show()`.
+- **Observateur de base de données** (`MessageAppDatabaseObserver.java`) : affiche dans la console tous les événements de modification de la base.
+- **Fenêtre principale** (`MessageAppMainView.java`) : JFrame avec titre "MessageApp" et icône UBO.
+- **Barre de menu** : "Fichier" (Quitter) et "?" (A propos).
+- **Sélecteur de répertoire** (`JFileChooser`).
+- **Look&Feel système**.
