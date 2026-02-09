@@ -1,5 +1,7 @@
 package main.java.com.ubo.tp.message.ihm;
 
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.io.File;
 
 import javax.swing.JFileChooser;
@@ -8,17 +10,31 @@ import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 
 import main.java.com.ubo.tp.message.core.DataManager;
+import main.java.com.ubo.tp.message.core.session.ISessionObserver;
+import main.java.com.ubo.tp.message.core.session.Session;
+import main.java.com.ubo.tp.message.datamodel.User;
+import main.java.com.ubo.tp.message.ihm.login.AccountController;
 
 /**
  * Classe principale l'application.
  *
  * @author S.Lucas
  */
-public class MessageApp {
+public class MessageApp implements ISessionObserver {
 	/**
-	 * Base de données.
+	 * Gestionnaire de données.
 	 */
 	protected DataManager mDataManager;
+
+	/**
+	 * Session de l'application.
+	 */
+	protected Session mSession;
+
+	/**
+	 * Contrôleur des comptes.
+	 */
+	protected AccountController mAccountController;
 
 	/**
 	 * Vue principale de l'application.
@@ -28,10 +44,13 @@ public class MessageApp {
 	/**
 	 * Constructeur.
 	 *
-	 * @param dataManager
+	 * @param dataManager gestionnaire de données
 	 */
 	public MessageApp(DataManager dataManager) {
 		this.mDataManager = dataManager;
+		this.mSession = new Session();
+		this.mSession.addObserver(this);
+		this.mAccountController = new AccountController(dataManager, mSession);
 	}
 
 	/**
@@ -64,8 +83,16 @@ public class MessageApp {
 	 * Initialisation de l'interface graphique.
 	 */
 	protected void initGui() {
-		// Création de la vue principale
-		this.mMainView = new MessageAppMainView();
+		// Création de la vue principale avec le contrôleur de comptes
+		this.mMainView = new MessageAppMainView(mAccountController);
+
+		// Listener pour réagir à la connexion réussie
+		this.mMainView.setLoginSuccessListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				// La session notifiera via notifyLogin()
+			}
+		});
 
 		// Enregistrement de l'observateur pour log en console
 		MessageAppDatabaseObserver observer = new MessageAppDatabaseObserver();
@@ -138,5 +165,20 @@ public class MessageApp {
 				mMainView.setVisible(true);
 			}
 		});
+	}
+
+	// ========== ISessionObserver ==========
+
+	@Override
+	public void notifyLogin(User connectedUser) {
+		System.out.println("[SESSION] Utilisateur connecté : " + connectedUser.getName() + " (@"
+				+ connectedUser.getUserTag() + ")");
+		mMainView.showMainPanel();
+	}
+
+	@Override
+	public void notifyLogout() {
+		System.out.println("[SESSION] Déconnexion");
+		mMainView.showLoginPanel();
 	}
 }

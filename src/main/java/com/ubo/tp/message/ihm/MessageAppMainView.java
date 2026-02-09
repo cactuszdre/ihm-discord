@@ -1,6 +1,7 @@
 package main.java.com.ubo.tp.message.ihm;
 
 import java.awt.BorderLayout;
+import java.awt.CardLayout;
 import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -11,6 +12,11 @@ import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+
+import main.java.com.ubo.tp.message.ihm.login.AccountController;
+import main.java.com.ubo.tp.message.ihm.login.LoginPanel;
+import main.java.com.ubo.tp.message.ihm.login.RegistrationPanel;
 
 /**
  * Classe de la vue principale de l'application.
@@ -23,12 +29,47 @@ public class MessageAppMainView extends JFrame {
     private static final String IMAGES_PATH = "/main/resources/images/";
 
     /**
-     * Constructeur.
+     * Constantes pour les noms de cartes.
      */
-    public MessageAppMainView() {
+    private static final String CARD_LOGIN = "LOGIN";
+    private static final String CARD_REGISTER = "REGISTER";
+    private static final String CARD_MAIN = "MAIN";
+
+    /**
+     * Layout pour basculer entre les panels.
+     */
+    private CardLayout mCardLayout;
+
+    /**
+     * Panel conteneur principal.
+     */
+    private JPanel mContentPanel;
+
+    /**
+     * Panel de login.
+     */
+    private LoginPanel mLoginPanel;
+
+    /**
+     * Panel d'inscription.
+     */
+    private RegistrationPanel mRegistrationPanel;
+
+    /**
+     * Panel principal (après connexion).
+     */
+    private JPanel mMainPanel;
+
+    /**
+     * Constructeur.
+     *
+     * @param accountController contrôleur des comptes
+     */
+    public MessageAppMainView(AccountController accountController) {
         super("MessageApp");
         this.initFrame();
         this.initMenuBar();
+        this.initPanels(accountController);
     }
 
     /**
@@ -85,6 +126,86 @@ public class MessageAppMainView extends JFrame {
         menuBar.add(helpMenu);
 
         this.setJMenuBar(menuBar);
+    }
+
+    /**
+     * Initialisation des panels avec CardLayout.
+     */
+    private void initPanels(AccountController accountController) {
+        mCardLayout = new CardLayout();
+        mContentPanel = new JPanel(mCardLayout);
+
+        // Panel de login
+        mLoginPanel = new LoginPanel(accountController);
+        mLoginPanel.setShowRegistrationListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                showRegistrationPanel();
+            }
+        });
+
+        // Panel d'inscription
+        mRegistrationPanel = new RegistrationPanel(accountController);
+        mRegistrationPanel.setShowLoginListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                showLoginPanel();
+            }
+        });
+        mRegistrationPanel.setRegistrationSuccessListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                showLoginPanel();
+            }
+        });
+
+        // Panel principal (placeholder pour l'instant)
+        mMainPanel = new JPanel(new BorderLayout());
+
+        // Ajout des cartes
+        mContentPanel.add(mLoginPanel, CARD_LOGIN);
+        mContentPanel.add(mRegistrationPanel, CARD_REGISTER);
+        mContentPanel.add(mMainPanel, CARD_MAIN);
+
+        this.add(mContentPanel, BorderLayout.CENTER);
+
+        // Afficher login par défaut
+        showLoginPanel();
+    }
+
+    /**
+     * Affiche le panel de login.
+     */
+    public void showLoginPanel() {
+        mCardLayout.show(mContentPanel, CARD_LOGIN);
+    }
+
+    /**
+     * Affiche le panel d'inscription.
+     */
+    public void showRegistrationPanel() {
+        mCardLayout.show(mContentPanel, CARD_REGISTER);
+    }
+
+    /**
+     * Affiche le panel principal.
+     */
+    public void showMainPanel() {
+        mCardLayout.show(mContentPanel, CARD_MAIN);
+    }
+
+    /**
+     * Retourne le panel principal pour y ajouter du contenu.
+     */
+    public JPanel getMainPanel() {
+        return mMainPanel;
+    }
+
+    /**
+     * Définit le listener de succès de connexion sur le LoginPanel.
+     */
+    public void setLoginSuccessListener(ActionListener listener) {
+        mLoginPanel.setLoginSuccessListener(listener);
     }
 
     /**
