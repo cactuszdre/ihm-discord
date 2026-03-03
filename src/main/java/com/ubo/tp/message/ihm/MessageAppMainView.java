@@ -13,14 +13,19 @@ import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JSplitPane;
 
+import main.java.com.ubo.tp.message.ihm.channel.ChannelListView;
 import main.java.com.ubo.tp.message.ihm.common.DiscordTheme;
-import main.java.com.ubo.tp.message.ihm.login.AccountController;
 import main.java.com.ubo.tp.message.ihm.login.LoginPanel;
 import main.java.com.ubo.tp.message.ihm.login.RegistrationPanel;
+import main.java.com.ubo.tp.message.ihm.message.MessageInputView;
+import main.java.com.ubo.tp.message.ihm.message.MessageListView;
+import main.java.com.ubo.tp.message.ihm.user.UserListView;
 
 /**
  * Classe de la vue principale de l'application.
+ * Ne contient aucune logique métier (MVC — View).
  */
 public class MessageAppMainView extends JFrame {
 
@@ -62,15 +67,43 @@ public class MessageAppMainView extends JFrame {
     private JPanel mMainPanel;
 
     /**
-     * Constructeur.
-     *
-     * @param accountController contrôleur des comptes
+     * Vue de la liste des canaux.
      */
-    public MessageAppMainView(AccountController accountController) {
+    private ChannelListView mChannelListView;
+
+    /**
+     * Vue de la liste des messages.
+     */
+    private MessageListView mMessageListView;
+
+    /**
+     * Vue de saisie de message.
+     */
+    private MessageInputView mMessageInputView;
+
+    /**
+     * Vue de la liste des utilisateurs.
+     */
+    private UserListView mUserListView;
+
+    /**
+     * Listener de déconnexion.
+     */
+    private ActionListener mLogoutListener;
+
+    /**
+     * Menu item de déconnexion (visible uniquement après connexion).
+     */
+    private JMenuItem mLogoutItem;
+
+    /**
+     * Constructeur.
+     */
+    public MessageAppMainView() {
         super("MessageApp");
         this.initFrame();
         this.initMenuBar();
-        this.initPanels(accountController);
+        this.initPanels();
     }
 
     /**
@@ -83,7 +116,7 @@ public class MessageAppMainView extends JFrame {
 
         // Configuration de la fenêtre
         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        this.setPreferredSize(new Dimension(800, 600));
+        this.setPreferredSize(new Dimension(1100, 700));
         this.setLayout(new BorderLayout());
     }
 
@@ -95,6 +128,21 @@ public class MessageAppMainView extends JFrame {
 
         // ---- Menu "Fichier" ----
         JMenu fichierMenu = new JMenu("Fichier");
+
+        // Entrée "Déconnexion"
+        mLogoutItem = new JMenuItem("Déconnexion");
+        mLogoutItem.setToolTipText("Se déconnecter");
+        mLogoutItem.setVisible(false);
+        mLogoutItem.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (mLogoutListener != null) {
+                    mLogoutListener.actionPerformed(
+                            new ActionEvent(this, ActionEvent.ACTION_PERFORMED, "logout"));
+                }
+            }
+        });
+        fichierMenu.add(mLogoutItem);
 
         // Entrée "Quitter"
         JMenuItem quitterItem = new JMenuItem("Quitter");
@@ -132,13 +180,13 @@ public class MessageAppMainView extends JFrame {
     /**
      * Initialisation des panels avec CardLayout.
      */
-    private void initPanels(AccountController accountController) {
+    private void initPanels() {
         mCardLayout = new CardLayout();
         mContentPanel = new JPanel(mCardLayout);
-        mContentPanel.setBackground(DiscordTheme.BACKGROUND_DARK); // Fond général
+        mContentPanel.setBackground(DiscordTheme.BACKGROUND_DARK);
 
-        // Panel de login
-        mLoginPanel = new LoginPanel(accountController);
+        // Panel de login (View pure, sans Controller)
+        mLoginPanel = new LoginPanel();
         mLoginPanel.setShowRegistrationListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -146,24 +194,38 @@ public class MessageAppMainView extends JFrame {
             }
         });
 
-        // Panel d'inscription
-        mRegistrationPanel = new RegistrationPanel(accountController);
+        // Panel d'inscription (View pure, sans Controller)
+        mRegistrationPanel = new RegistrationPanel();
         mRegistrationPanel.setShowLoginListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 showLoginPanel();
             }
         });
-        mRegistrationPanel.setRegistrationSuccessListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                showLoginPanel();
-            }
-        });
 
-        // Panel principal (placeholder pour l'instant)
+        // Panel principal avec layout 3 colonnes
         mMainPanel = new JPanel(new BorderLayout());
         mMainPanel.setBackground(DiscordTheme.BACKGROUND_DARK);
+
+        // ---- Sidebar gauche : canaux ----
+        mChannelListView = new ChannelListView();
+
+        // ---- Centre : messages ----
+        mMessageListView = new MessageListView();
+        mMessageInputView = new MessageInputView();
+
+        JPanel centerPanel = new JPanel(new BorderLayout());
+        centerPanel.setBackground(DiscordTheme.BACKGROUND_DARK);
+        centerPanel.add(mMessageListView, BorderLayout.CENTER);
+        centerPanel.add(mMessageInputView, BorderLayout.SOUTH);
+
+        // ---- Sidebar droite : utilisateurs ----
+        mUserListView = new UserListView();
+
+        // Assemblage du main panel
+        mMainPanel.add(mChannelListView, BorderLayout.WEST);
+        mMainPanel.add(centerPanel, BorderLayout.CENTER);
+        mMainPanel.add(mUserListView, BorderLayout.EAST);
 
         // Ajout des cartes
         mContentPanel.add(mLoginPanel, CARD_LOGIN);
@@ -180,6 +242,7 @@ public class MessageAppMainView extends JFrame {
      * Affiche le panel de login.
      */
     public void showLoginPanel() {
+        mLogoutItem.setVisible(false);
         mCardLayout.show(mContentPanel, CARD_LOGIN);
     }
 
@@ -194,21 +257,42 @@ public class MessageAppMainView extends JFrame {
      * Affiche le panel principal.
      */
     public void showMainPanel() {
+        mLogoutItem.setVisible(true);
         mCardLayout.show(mContentPanel, CARD_MAIN);
     }
 
-    /**
-     * Retourne le panel principal pour y ajouter du contenu.
-     */
-    public JPanel getMainPanel() {
-        return mMainPanel;
+    // ========== Getters pour les Views (utilisés par MessageApp pour le câblage
+    // MVC) ==========
+
+    public LoginPanel getLoginPanel() {
+        return mLoginPanel;
+    }
+
+    public RegistrationPanel getRegistrationPanel() {
+        return mRegistrationPanel;
+    }
+
+    public ChannelListView getChannelListView() {
+        return mChannelListView;
+    }
+
+    public MessageListView getMessageListView() {
+        return mMessageListView;
+    }
+
+    public MessageInputView getMessageInputView() {
+        return mMessageInputView;
+    }
+
+    public UserListView getUserListView() {
+        return mUserListView;
     }
 
     /**
-     * Définit le listener de succès de connexion sur le LoginPanel.
+     * Définit le listener de déconnexion.
      */
-    public void setLoginSuccessListener(ActionListener listener) {
-        mLoginPanel.setLoginSuccessListener(listener);
+    public void setLogoutListener(ActionListener listener) {
+        this.mLogoutListener = listener;
     }
 
     /**

@@ -12,22 +12,26 @@ import javax.swing.UIManager;
 import main.java.com.ubo.tp.message.core.DataManager;
 import main.java.com.ubo.tp.message.core.session.ISessionObserver;
 import main.java.com.ubo.tp.message.core.session.Session;
+import main.java.com.ubo.tp.message.datamodel.Channel;
 import main.java.com.ubo.tp.message.datamodel.User;
+import main.java.com.ubo.tp.message.ihm.channel.ChannelController;
 import main.java.com.ubo.tp.message.ihm.login.AccountController;
+import main.java.com.ubo.tp.message.ihm.message.MessageController;
+import main.java.com.ubo.tp.message.ihm.user.UserController;
 
 /**
- * Classe principale l'application.
- *
- * @author S.Lucas
+ * Classe principale de l'application (MVC — Coordinateur).
+ * Instancie les Views (via MainView) et les Controllers,
+ * et câble les composants MVC entre eux.
  */
 public class MessageApp implements ISessionObserver {
 	/**
-	 * Gestionnaire de données.
+	 * Gestionnaire de données (Model).
 	 */
 	protected DataManager mDataManager;
 
 	/**
-	 * Session de l'application.
+	 * Session de l'application (Model).
 	 */
 	protected Session mSession;
 
@@ -35,6 +39,21 @@ public class MessageApp implements ISessionObserver {
 	 * Contrôleur des comptes.
 	 */
 	protected AccountController mAccountController;
+
+	/**
+	 * Contrôleur des canaux.
+	 */
+	protected ChannelController mChannelController;
+
+	/**
+	 * Contrôleur des messages.
+	 */
+	protected MessageController mMessageController;
+
+	/**
+	 * Contrôleur des utilisateurs.
+	 */
+	protected UserController mUserController;
 
 	/**
 	 * Vue principale de l'application.
@@ -50,7 +69,6 @@ public class MessageApp implements ISessionObserver {
 		this.mDataManager = dataManager;
 		this.mSession = new Session();
 		this.mSession.addObserver(this);
-		this.mAccountController = new AccountController(dataManager, mSession);
 	}
 
 	/**
@@ -74,23 +92,27 @@ public class MessageApp implements ISessionObserver {
 		try {
 			UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
 		} catch (Exception e) {
-			// En cas d'erreur, on garde le Look&Feel par défaut
 			System.err.println("Impossible de charger le Look&Feel système : " + e.getMessage());
 		}
 	}
 
 	/**
-	 * Initialisation de l'interface graphique.
+	 * Initialisation de l'interface graphique et câblage MVC.
 	 */
 	protected void initGui() {
-		// Création de la vue principale avec le contrôleur de comptes
-		this.mMainView = new MessageAppMainView(mAccountController);
+		// Création de la vue principale (toutes les sous-vues sont créées dedans)
+		this.mMainView = new MessageAppMainView();
 
-		// Listener pour réagir à la connexion réussie
-		this.mMainView.setLoginSuccessListener(new ActionListener() {
+		// ---- Câblage MVC : Login ----
+		this.mAccountController = new AccountController(mDataManager, mSession);
+		this.mAccountController.setLoginView(mMainView.getLoginPanel());
+		this.mAccountController.setRegistrationView(mMainView.getRegistrationPanel());
+
+		// Listener de déconnexion
+		this.mMainView.setLogoutListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				// La session notifiera via notifyLogin()
+				mSession.disconnect();
 			}
 		});
 
@@ -100,13 +122,38 @@ public class MessageApp implements ISessionObserver {
 	}
 
 	/**
-	 * Initialisation du répertoire d'échange (depuis la conf ou depuis un file
-	 * chooser). <br/>
-	 * <b>Le chemin doit obligatoirement avoir été saisi et être valide avant de
-	 * pouvoir utiliser l'application</b>
+	 * Câble les contrôleurs du panel principal (canaux, messages, utilisateurs).
+	 * Appelé après la connexion de l'utilisateur.
+	 */
+	private void initMainControllers() {
+		// ---- Câblage MVC : Canaux ----
+		mChannelController = new ChannelController(
+				mDataManager, mSession, mMainView.getChannelListView());
+
+		// ---- Câblage MVC : Messages ----
+		mMessageController = new MessageController(
+				mDataManager, mSession,
+				mMainView.getMessageListView(),
+				mMainView.getMessageInputView());
+
+		// ---- Câblage MVC : Utilisateurs ----
+		mUserController = new UserController(
+				mDataManager, mSession, mMainView.getUserListView());
+
+		// ---- Liaison canal → messages ----
+		mChannelController.setChannelSelectionListener(
+				new ChannelController.IChannelSelectionListener() {
+					@Override
+					public void onChannelSelected(Channel channel) {
+						mMessageController.setCurrentChannel(channel);
+					}
+				});
+	}
+
+	/**
+	 * Initialisation du répertoire d'échange.
 	 */
 	protected void initDirectory() {
-		// Boucle tant qu'un répertoire valide n'a pas été sélectionné
 		boolean validDirectory = false;
 
 		while (!validDirectory) {
@@ -130,27 +177,21 @@ public class MessageApp implements ISessionObserver {
 							JOptionPane.WARNING_MESSAGE);
 				}
 			} else {
-				// L'utilisateur a annulé : on quitte l'application
 				System.exit(0);
 			}
 		}
 	}
 
 	/**
-	 * Indique si le fichier donné est valide pour servir de répertoire d'échange
-	 *
-	 * @param directory , Répertoire à tester.
+	 * Indique si le fichier donné est valide pour servir de répertoire d'échange.
 	 */
 	protected boolean isValidExchangeDirectory(File directory) {
-		// Valide si répertoire disponible en lecture et écriture
-		return directory != null && directory.exists() && directory.isDirectory() && directory.canRead()
-				&& directory.canWrite();
+		return directory != null && directory.exists() && directory.isDirectory()
+				&& directory.canRead() && directory.canWrite();
 	}
 
 	/**
 	 * Initialisation du répertoire d'échange.
-	 *
-	 * @param directoryPath
 	 */
 	protected void initDirectory(String directoryPath) {
 		mDataManager.setExchangeDirectory(directoryPath);
@@ -171,14 +212,26 @@ public class MessageApp implements ISessionObserver {
 
 	@Override
 	public void notifyLogin(User connectedUser) {
-		System.out.println("[SESSION] Utilisateur connecté : " + connectedUser.getName() + " (@"
-				+ connectedUser.getUserTag() + ")");
+		System.out.println("[SESSION] Utilisateur connecté : " + connectedUser.getName()
+				+ " (@" + connectedUser.getUserTag() + ")");
+
+		// Câblage des contrôleurs du panel principal
+		initMainControllers();
+
+		// Basculer vers le panel principal
 		mMainView.showMainPanel();
 	}
 
 	@Override
 	public void notifyLogout() {
 		System.out.println("[SESSION] Déconnexion");
+
+		// Nettoyage des contrôleurs
+		mChannelController = null;
+		mMessageController = null;
+		mUserController = null;
+
+		// Retour au login
 		mMainView.showLoginPanel();
 	}
 }
