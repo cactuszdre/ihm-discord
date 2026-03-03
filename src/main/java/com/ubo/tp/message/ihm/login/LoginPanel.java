@@ -1,10 +1,9 @@
 package main.java.com.ubo.tp.message.ihm.login;
 
-import java.awt.Color;
+import java.awt.Cursor;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
-import java.awt.Cursor;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
@@ -21,7 +20,9 @@ import main.java.com.ubo.tp.message.ihm.common.DiscordTextField;
 import main.java.com.ubo.tp.message.ihm.common.DiscordTheme;
 
 /**
- * Panel de connexion utilisateur.
+ * Vue de connexion utilisateur (MVC — View pure).
+ * Ne contient aucune logique métier. Expose les actions via
+ * ILoginActionListener.
  */
 public class LoginPanel extends JPanel {
 
@@ -36,27 +37,19 @@ public class LoginPanel extends JPanel {
     private DiscordTextField mTagField;
 
     /**
-     * Contrôleur des comptes.
-     */
-    private AccountController mAccountController;
-
-    /**
      * Listener pour basculer vers l'inscription.
      */
     private ActionListener mShowRegistrationListener;
 
     /**
-     * Listener appelé après une connexion réussie.
+     * Listener des actions de login (Controller).
      */
-    private ActionListener mLoginSuccessListener;
+    private ILoginActionListener mLoginActionListener;
 
     /**
      * Constructeur.
-     *
-     * @param accountController contrôleur des comptes
      */
-    public LoginPanel(AccountController accountController) {
-        this.mAccountController = accountController;
+    public LoginPanel() {
         this.initPanel();
     }
 
@@ -68,10 +61,19 @@ public class LoginPanel extends JPanel {
     }
 
     /**
-     * Définit le listener appelé après connexion réussie.
+     * Définit le listener des actions de login (Controller MVC).
      */
-    public void setLoginSuccessListener(ActionListener listener) {
-        this.mLoginSuccessListener = listener;
+    public void setLoginActionListener(ILoginActionListener listener) {
+        this.mLoginActionListener = listener;
+    }
+
+    /**
+     * Affiche un message d'erreur à l'utilisateur.
+     *
+     * @param message le message d'erreur.
+     */
+    public void showError(String message) {
+        JOptionPane.showMessageDialog(this, message, "Erreur", JOptionPane.ERROR_MESSAGE);
     }
 
     /**
@@ -79,7 +81,7 @@ public class LoginPanel extends JPanel {
      */
     private void initPanel() {
         this.setLayout(new GridBagLayout());
-        this.setBackground(DiscordTheme.BACKGROUND_DARK); // Fond principal sombre
+        this.setBackground(DiscordTheme.BACKGROUND_DARK);
 
         // Conteneur "Carte" centrée
         DiscordRoundPanel cardPanel = new DiscordRoundPanel();
@@ -130,7 +132,9 @@ public class LoginPanel extends JPanel {
         loginButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                doLogin();
+                if (mLoginActionListener != null) {
+                    mLoginActionListener.onLoginRequested(mTagField.getText().trim());
+                }
             }
         });
         cardPanel.add(loginButton, new GridBagConstraints(0, row++, 1, 1, 1, 0,
@@ -169,34 +173,5 @@ public class LoginPanel extends JPanel {
         this.add(cardPanel, new GridBagConstraints(0, 0, 1, 1, 1, 1,
                 GridBagConstraints.CENTER, GridBagConstraints.NONE,
                 new Insets(0, 0, 0, 0), 0, 0));
-    }
-
-    /**
-     * Effectue la connexion.
-     */
-    private void doLogin() {
-        String tag = mTagField.getText().trim();
-
-        if (tag.isEmpty()) {
-            JOptionPane.showMessageDialog(this,
-                    "Veuillez saisir votre tag utilisateur.",
-                    "Champ requis",
-                    JOptionPane.WARNING_MESSAGE);
-            return;
-        }
-
-        boolean success = mAccountController.login(tag);
-
-        if (success) {
-            if (mLoginSuccessListener != null) {
-                mLoginSuccessListener.actionPerformed(
-                        new ActionEvent(this, ActionEvent.ACTION_PERFORMED, "loginSuccess"));
-            }
-        } else {
-            JOptionPane.showMessageDialog(this,
-                    "Aucun utilisateur trouvé avec ce tag.",
-                    "Erreur de connexion",
-                    JOptionPane.ERROR_MESSAGE);
-        }
     }
 }

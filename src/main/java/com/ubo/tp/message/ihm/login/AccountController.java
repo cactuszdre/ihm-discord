@@ -8,19 +8,31 @@ import main.java.com.ubo.tp.message.core.session.Session;
 import main.java.com.ubo.tp.message.datamodel.User;
 
 /**
- * Contrôleur pour la gestion des comptes utilisateurs (login/register).
+ * Contrôleur pour la gestion des comptes utilisateurs (MVC — Controller).
+ * Implémente les listeners des vues Login et Registration.
+ * Contient toute la logique métier (validation, appels au Model).
  */
-public class AccountController {
+public class AccountController implements ILoginActionListener, IRegistrationActionListener {
 
     /**
-     * Gestionnaire de données.
+     * Gestionnaire de données (Model).
      */
     private DataManager mDataManager;
 
     /**
-     * Session de l'application.
+     * Session de l'application (Model).
      */
     private Session mSession;
+
+    /**
+     * Vue de connexion.
+     */
+    private LoginPanel mLoginView;
+
+    /**
+     * Vue d'inscription.
+     */
+    private RegistrationPanel mRegistrationView;
 
     /**
      * Constructeur.
@@ -34,42 +46,75 @@ public class AccountController {
     }
 
     /**
-     * Tente de connecter un utilisateur par son tag.
+     * Associe la vue de connexion et s'enregistre comme listener.
      *
-     * @param tag tag de l'utilisateur (sans @)
-     * @return true si la connexion a réussi
+     * @param loginView la vue de connexion.
      */
-    public boolean login(String tag) {
-        User user = findUserByTag(tag);
-        if (user != null) {
-            mSession.connect(user);
-            return true;
-        }
-        return false;
+    public void setLoginView(LoginPanel loginView) {
+        this.mLoginView = loginView;
+        this.mLoginView.setLoginActionListener(this);
     }
 
     /**
-     * Enregistre un nouvel utilisateur.
+     * Associe la vue d'inscription et s'enregistre comme listener.
      *
-     * @param name     nom de l'utilisateur
-     * @param tag      tag unique de l'utilisateur
-     * @param password mot de passe
-     * @return true si l'enregistrement a réussi
+     * @param registrationView la vue d'inscription.
      */
-    public boolean register(String name, String tag, String password) {
-        // Vérification tag unique
+    public void setRegistrationView(RegistrationPanel registrationView) {
+        this.mRegistrationView = registrationView;
+        this.mRegistrationView.setRegistrationActionListener(this);
+    }
+
+    // ========== ILoginActionListener ==========
+
+    @Override
+    public void onLoginRequested(String tag) {
+        // Validation
+        if (tag.isEmpty()) {
+            mLoginView.showError("Veuillez saisir votre tag utilisateur.");
+            return;
+        }
+
+        // Recherche de l'utilisateur
+        User user = findUserByTag(tag);
+        if (user != null) {
+            mSession.connect(user);
+        } else {
+            mLoginView.showError("Aucun utilisateur trouvé avec ce tag.");
+        }
+    }
+
+    // ========== IRegistrationActionListener ==========
+
+    @Override
+    public void onRegisterRequested(String name, String tag, String password) {
+        // Validation des champs obligatoires (SRS-MAP-USR-002)
+        if (name.isEmpty()) {
+            mRegistrationView.showError("Le nom est obligatoire.");
+            return;
+        }
+
+        if (tag.isEmpty()) {
+            mRegistrationView.showError("Le tag est obligatoire.");
+            return;
+        }
+
+        // Vérification unicité du tag (SRS-MAP-USR-003)
         if (!isTagUnique(tag)) {
-            return false;
+            mRegistrationView.showError("Ce tag est déjà utilisé par un autre utilisateur.");
+            return;
         }
 
         // Création de l'utilisateur
         User newUser = new User(UUID.randomUUID(), tag, password, name);
-
-        // Sauvegarde via DataManager (écrit le fichier utilisateur)
         mDataManager.sendUser(newUser);
 
-        return true;
+        // Notification de succès et retour au login
+        mRegistrationView.showSuccess("Compte créé avec succès !\nVous pouvez maintenant vous connecter.");
+        mRegistrationView.clearFields();
     }
+
+    // ========== Méthodes utilitaires ==========
 
     /**
      * Vérifie si un tag est unique dans le système.

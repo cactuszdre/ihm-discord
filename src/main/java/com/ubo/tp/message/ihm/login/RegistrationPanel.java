@@ -1,9 +1,9 @@
 package main.java.com.ubo.tp.message.ihm.login;
 
+import java.awt.Cursor;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
-import java.awt.Cursor;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
@@ -21,7 +21,9 @@ import main.java.com.ubo.tp.message.ihm.common.DiscordTextField;
 import main.java.com.ubo.tp.message.ihm.common.DiscordTheme;
 
 /**
- * Panel de création de compte utilisateur.
+ * Vue de création de compte utilisateur (MVC — View pure).
+ * Ne contient aucune logique métier. Expose les actions via
+ * IRegistrationActionListener.
  */
 public class RegistrationPanel extends JPanel {
 
@@ -46,27 +48,19 @@ public class RegistrationPanel extends JPanel {
     private DiscordPasswordField mPasswordField;
 
     /**
-     * Contrôleur des comptes.
-     */
-    private AccountController mAccountController;
-
-    /**
      * Listener pour basculer vers le login.
      */
     private ActionListener mShowLoginListener;
 
     /**
-     * Listener appelé après inscription réussie.
+     * Listener des actions d'inscription (Controller).
      */
-    private ActionListener mRegistrationSuccessListener;
+    private IRegistrationActionListener mRegistrationActionListener;
 
     /**
      * Constructeur.
-     *
-     * @param accountController contrôleur des comptes
      */
-    public RegistrationPanel(AccountController accountController) {
-        this.mAccountController = accountController;
+    public RegistrationPanel() {
         this.initPanel();
     }
 
@@ -78,10 +72,37 @@ public class RegistrationPanel extends JPanel {
     }
 
     /**
-     * Définit le listener appelé après inscription réussie.
+     * Définit le listener des actions d'inscription (Controller MVC).
      */
-    public void setRegistrationSuccessListener(ActionListener listener) {
-        this.mRegistrationSuccessListener = listener;
+    public void setRegistrationActionListener(IRegistrationActionListener listener) {
+        this.mRegistrationActionListener = listener;
+    }
+
+    /**
+     * Affiche un message d'erreur à l'utilisateur.
+     *
+     * @param message le message d'erreur.
+     */
+    public void showError(String message) {
+        JOptionPane.showMessageDialog(this, message, "Erreur", JOptionPane.ERROR_MESSAGE);
+    }
+
+    /**
+     * Affiche un message de succès à l'utilisateur.
+     *
+     * @param message le message de succès.
+     */
+    public void showSuccess(String message) {
+        JOptionPane.showMessageDialog(this, message, "Succès", JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    /**
+     * Efface les champs de saisie.
+     */
+    public void clearFields() {
+        mNameField.setText("");
+        mTagField.setText("");
+        mPasswordField.setText("");
     }
 
     /**
@@ -160,7 +181,12 @@ public class RegistrationPanel extends JPanel {
         registerButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                doRegister();
+                if (mRegistrationActionListener != null) {
+                    mRegistrationActionListener.onRegisterRequested(
+                            mNameField.getText().trim(),
+                            mTagField.getText().trim(),
+                            new String(mPasswordField.getPassword()));
+                }
             }
         });
         cardPanel.add(registerButton, new GridBagConstraints(0, row++, 1, 1, 1, 0,
@@ -199,65 +225,5 @@ public class RegistrationPanel extends JPanel {
         this.add(cardPanel, new GridBagConstraints(0, 0, 1, 1, 1, 1,
                 GridBagConstraints.CENTER, GridBagConstraints.NONE,
                 new Insets(0, 0, 0, 0), 0, 0));
-    }
-
-    /**
-     * Effectue l'inscription.
-     */
-    private void doRegister() {
-        String name = mNameField.getText().trim();
-        String tag = mTagField.getText().trim();
-        String password = new String(mPasswordField.getPassword());
-
-        // Validation des champs obligatoires (SRS-MAP-USR-002)
-        if (name.isEmpty()) {
-            JOptionPane.showMessageDialog(this,
-                    "Le nom est obligatoire.",
-                    "Champ requis",
-                    JOptionPane.WARNING_MESSAGE);
-            return;
-        }
-
-        if (tag.isEmpty()) {
-            JOptionPane.showMessageDialog(this,
-                    "Le tag est obligatoire.",
-                    "Champ requis",
-                    JOptionPane.WARNING_MESSAGE);
-            return;
-        }
-
-        // Vérification unicité du tag (SRS-MAP-USR-003)
-        if (!mAccountController.isTagUnique(tag)) {
-            JOptionPane.showMessageDialog(this,
-                    "Ce tag est déjà utilisé par un autre utilisateur.",
-                    "Tag non disponible",
-                    JOptionPane.ERROR_MESSAGE);
-            return;
-        }
-
-        // Enregistrement
-        boolean success = mAccountController.register(name, tag, password);
-
-        if (success) {
-            JOptionPane.showMessageDialog(this,
-                    "Compte créé avec succès !\nVous pouvez maintenant vous connecter.",
-                    "Inscription réussie",
-                    JOptionPane.INFORMATION_MESSAGE);
-
-            // Effacer les champs
-            mNameField.setText("");
-            mTagField.setText("");
-            mPasswordField.setText("");
-
-            if (mRegistrationSuccessListener != null) {
-                mRegistrationSuccessListener.actionPerformed(
-                        new ActionEvent(this, ActionEvent.ACTION_PERFORMED, "registrationSuccess"));
-            }
-        } else {
-            JOptionPane.showMessageDialog(this,
-                    "Erreur lors de la création du compte.",
-                    "Erreur",
-                    JOptionPane.ERROR_MESSAGE);
-        }
     }
 }
