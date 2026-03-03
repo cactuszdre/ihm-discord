@@ -105,6 +105,31 @@ public class Channel extends AbstractMessageAppObject implements IMessageRecipie
 	}
 
 	/**
+	 * Indique si le canal est privé.
+	 */
+	public boolean isPrivate() {
+		return mPrivate;
+	}
+
+	/**
+	 * Ajoute un utilisateur au canal.
+	 *
+	 * @param user utilisateur à ajouter.
+	 */
+	public void addUser(User user) {
+		this.mUsers.add(user);
+	}
+
+	/**
+	 * Supprime un utilisateur du canal.
+	 *
+	 * @param user utilisateur à supprimer.
+	 */
+	public void removeUser(User user) {
+		this.mUsers.remove(user);
+	}
+
+	/**
 	 * {@inheritDoc}
 	 */
 	@Override
