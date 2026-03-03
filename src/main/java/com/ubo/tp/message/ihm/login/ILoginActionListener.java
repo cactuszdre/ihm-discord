@@ -9,7 +9,8 @@ public interface ILoginActionListener {
     /**
      * Appelé lorsque l'utilisateur demande à se connecter.
      *
-     * @param tag le tag saisi par l'utilisateur.
+     * @param tag      le tag saisi par l'utilisateur.
+     * @param password le mot de passe saisi par l'utilisateur.
      */
-    void onLoginRequested(String tag);
+    void onLoginRequested(String tag, String password);
 }

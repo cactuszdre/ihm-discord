@@ -15,6 +15,7 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 
 import main.java.com.ubo.tp.message.ihm.common.DiscordButton;
+import main.java.com.ubo.tp.message.ihm.common.DiscordPasswordField;
 import main.java.com.ubo.tp.message.ihm.common.DiscordRoundPanel;
 import main.java.com.ubo.tp.message.ihm.common.DiscordTextField;
 import main.java.com.ubo.tp.message.ihm.common.DiscordTheme;
@@ -35,6 +36,11 @@ public class LoginPanel extends JPanel {
      * Champ de saisie du tag.
      */
     private DiscordTextField mTagField;
+
+    /**
+     * Champ de saisie du mot de passe.
+     */
+    private DiscordPasswordField mPasswordField;
 
     /**
      * Listener pour basculer vers l'inscription.
@@ -127,13 +133,29 @@ public class LoginPanel extends JPanel {
                 GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
                 new Insets(0, 40, 20, 40), 0, 0));
 
+        // Label mot de passe
+        JLabel passwordLabel = new JLabel("MOT DE PASSE");
+        passwordLabel.setFont(DiscordTheme.FONT_SMALL);
+        passwordLabel.setForeground(DiscordTheme.TEXT_MUTED);
+        cardPanel.add(passwordLabel, new GridBagConstraints(0, row++, 1, 1, 1, 0,
+                GridBagConstraints.WEST, GridBagConstraints.NONE,
+                new Insets(0, 40, 5, 40), 0, 0));
+
+        // Champ mot de passe
+        mPasswordField = new DiscordPasswordField(20);
+        cardPanel.add(mPasswordField, new GridBagConstraints(0, row++, 1, 1, 1, 0,
+                GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL,
+                new Insets(0, 40, 20, 40), 0, 0));
+
         // Bouton connexion
         DiscordButton loginButton = new DiscordButton("Se connecter");
         loginButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 if (mLoginActionListener != null) {
-                    mLoginActionListener.onLoginRequested(mTagField.getText().trim());
+                    String tag = mTagField.getText().trim();
+                    String password = new String(mPasswordField.getPassword());
+                    mLoginActionListener.onLoginRequested(tag, password);
                 }
             }
         });

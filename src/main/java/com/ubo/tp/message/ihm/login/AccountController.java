@@ -68,20 +68,33 @@ public class AccountController implements ILoginActionListener, IRegistrationAct
     // ========== ILoginActionListener ==========
 
     @Override
-    public void onLoginRequested(String tag) {
-        // Validation
+    public void onLoginRequested(String tag, String password) {
+        // Validation du tag
         if (tag.isEmpty()) {
             mLoginView.showError("Veuillez saisir votre tag utilisateur.");
             return;
         }
 
-        // Recherche de l'utilisateur
-        User user = findUserByTag(tag);
-        if (user != null) {
-            mSession.connect(user);
-        } else {
-            mLoginView.showError("Aucun utilisateur trouvé avec ce tag.");
+        // Validation du mot de passe
+        if (password.isEmpty()) {
+            mLoginView.showError("Veuillez saisir votre mot de passe.");
+            return;
         }
+
+        // Recherche de l'utilisateur par tag
+        User user = findUserByTag(tag);
+        if (user == null) {
+            mLoginView.showError("Aucun utilisateur trouvé avec ce tag.");
+            return;
+        }
+
+        // Vérification du mot de passe
+        if (!user.getUserPassword().equals(password)) {
+            mLoginView.showError("Mot de passe incorrect.");
+            return;
+        }
+
+        mSession.connect(user);
     }
 
     // ========== IRegistrationActionListener ==========
