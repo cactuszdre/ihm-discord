@@ -163,7 +163,7 @@ public class MessageInputView extends JPanel {
         if (length > MAX_MESSAGE_LENGTH) {
             mCharCounter.setForeground(DiscordTheme.RED);
         } else if (length > MAX_MESSAGE_LENGTH * 0.9) {
-            mCharCounter.setForeground(new java.awt.Color(250, 166, 26)); // Orange
+            mCharCounter.setForeground(DiscordTheme.WARNING);
         } else {
             mCharCounter.setForeground(DiscordTheme.TEXT_MUTED);
         }

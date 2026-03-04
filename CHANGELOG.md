@@ -1,43 +1,94 @@
 # Changelog
 
-## [1.2.0] - 2026-02-09
+## [2.0.1] - 2026-03-04
 
-### Ajouté
-- **Thème Discord** : refonte graphique complète de l'interface de connexion et d'inscription.
-  - **Couleurs** : utilisation de la palette Discord (Dark Theme `#36393f`, Blurple `#5865F2`, Green `#57F287`, Red `#ED4245`).
-  - **Composants personnalisés** :
-    - `DiscordButton` : boutons sans bordure, coins arrondis, effet hover.
-    - `DiscordTextField` / `DiscordPasswordField` : champs de saisie sur fond sombre avec padding.
-    - `DiscordRoundPanel` : conteneur avec coins arrondis pour les formulaires.
-    - `DiscordTheme` : classe utilitaire centralisant les constantes de style.
+### Corrigé
+- **Statut en ligne disparaît instantanément** : le champ `Online` n'était pas sérialisé dans les fichiers `.usr`. Quand le `WatchableDirectory` relisait le fichier, un nouvel objet `User` était créé avec `online=false` par défaut.
+  - `DataFilesManager.writeUserFile()` écrit maintenant `Online=true/false`.
+  - `DataFilesManager.readUser()` lit maintenant le champ `Online` et appelle `user.setOnline()`.
+- **Badges non lus absents en temps réel** : `ChannelListView.setUnreadChannels()` appelait `repaint()` au lieu de reconstruire les composants. Les badges (JPanel) n'étaient créés que dans `createChannelRow()` et un `repaint()` ne peut pas en ajouter de nouveaux.
+  - `setUnreadChannels()` appelle maintenant `rebuildChannelList()` qui reconstruit entièrement la liste des canaux.
+  - Les canaux sont stockés dans `mCurrentChannels` pour permettre le rebuild.
 
 ### Modifié
-- **`LoginPanel`** : interface centrée dans une "carte", logo UBO, champs et boutons stylisés.
-- **`RegistrationPanel`** : formulaire d'inscription cohérent avec le nouveau thème.
-- **`MessageAppMainView`** : fond de fenêtre adapté au thème sombre.
+- **`DataFilesManager.java`** : ajout constante `PROPERTY_KEY_USER_ONLINE`, lecture/écriture du champ `Online`.
+- **`ChannelListView.java`** : nouveau champ `mCurrentChannels`, nouvelle méthode `rebuildChannelList()`, `setUnreadChannels()` corrigé.
 
 ---
 
-## [1.1.0] - 2026-02-09
+## [2.0.0] - 2026-03-04
 
-### Ajouté
-- **Composant de connexion** (`LoginPanel.java`) : panel avec logo, champ tag, bouton connexion, lien vers inscription.
-- **Composant d'inscription** (`RegistrationPanel.java`) : panel avec champs nom/tag/mot de passe, bouton créer, validation des champs obligatoires et unicité du tag.
-- **Contrôleur des comptes** (`AccountController.java`) : logique de connexion et d'inscription, recherche d'utilisateur par tag.
-- **Gestion de session** : `MessageApp` implémente `ISessionObserver` pour réagir aux connexions/déconnexions.
-- **Navigation CardLayout** : bascule entre les panels Login, Registration et Main.
+### Ajouté — Gestion des membres de canaux privés
+- **`ChannelMembersDialog.java`** : nouveau `JDialog` modal pour gérer les membres d'un canal privé (ajouter/retirer des utilisateurs).
+- **Menu contextuel "Gérer les membres"** : clic droit sur un canal privé (visible uniquement pour le créateur).
+- **`IChannelActionListener`** : 3 nouvelles méthodes (`onManageMembers`, `onAddUserToChannel`, `onRemoveUserFromChannel`).
+- **`IChannelView.showManageMembersDialog()`** : contrat View pour afficher le dialogue de gestion des membres.
+
+### Ajouté — Message privé (DM)
+- **`UserController.onSendDirectMessage()`** : implémentation complète remplaçant le stub. Cherche un canal DM existant ou en crée un nouveau (`DM-tag1-tag2`).
+- **`UserController.IDirectMessageListener`** : interface pour notifier le coordinateur de la sélection d'un canal DM.
+- **Câblage DM dans `MessageApp`** : clic droit sur un utilisateur → "Envoyer un message privé" → crée/sélectionne automatiquement le canal DM.
+
+### Ajouté — Indicateurs graphiques
+- **Statut en ligne actif** : `setOnline(true)` à la connexion, `setOnline(false)` à la déconnexion, persisté via `sendUser()`.
+- **Messages non lus** : badge rouge (pastille) + nom du canal en **gras** dans la sidebar pour les canaux non lus.
+- **Notification sonore** : `Toolkit.beep()` quand un message arrive sur un canal non actif.
+- **`IChannelView.setUnreadChannels()`** : contrat View pour les indicateurs de non lu.
+- **`ChannelController`** : tracking des timestamps de dernière lecture (`mLastReadTimestamps`) et des canaux non lus (`mUnreadChannelIds`).
+
+### Ajouté — Qualité de code (SKILL.md §4.5, §4.6)
+- **`dispose()`** sur les 3 controllers (`ChannelController`, `MessageController`, `UserController`) pour désenregistrer les observers à la déconnexion.
+- **`DiscordTheme.BACKGROUND_HOVER`** : nouvelle couleur remplaçant les `new Color(60, 63, 69)` hardcodés.
+- **`DiscordTheme.WARNING`** : nouvelle couleur remplaçant le `new Color(250, 166, 26)` hardcodé.
+- **`MessageApp.mLastConnectedUser`** : sauvegarde de la référence utilisateur pour le logout (car `Session.disconnect()` nullifie avant notification).
 
 ### Modifié
-- **`MessageAppMainView.java`** : ajout de `CardLayout` pour la navigation entre panels, intégration de `LoginPanel` et `RegistrationPanel`.
-- **`MessageApp.java`** : ajout de `Session`, `AccountController`, implémentation de `ISessionObserver`.
+- **`ChannelController.java`** : ajout de la gestion des membres, tracking des messages non lus, `dispose()`.
+- **`ChannelListView.java`** : menu "Gérer les membres", badges non lus, utilisation de `DiscordTheme.BACKGROUND_HOVER`.
+- **`UserController.java`** : implémentation DM complète, `dispose()`.
+- **`MessageApp.java`** : câblage DM, statut en ligne, désenregistrement des observers au logout.
+- **`MessageController.java`** : ajout de `dispose()`.
+- **`UserListView.java`** : remplacement couleurs hardcodées par `DiscordTheme.BACKGROUND_HOVER`.
+- **`MessageInputView.java`** : remplacement couleur hardcodée par `DiscordTheme.WARNING`.
+- **`IChannelActionListener.java`** : +3 méthodes.
+- **`IChannelView.java`** : +2 méthodes.
 
 ---
 
-## [1.0.0] - 2026-02-09
+## [1.0.0] - 2026-03-02
 
-### Ajouté
+### Ajouté — Infrastructure
 - **Observateur de base de données** (`MessageAppDatabaseObserver.java`) : affiche dans la console tous les événements de modification de la base.
-- **Fenêtre principale** (`MessageAppMainView.java`) : JFrame avec titre "MessageApp" et icône UBO.
-- **Barre de menu** : "Fichier" (Quitter) et "?" (A propos).
+- **Fenêtre principale** (`MessageAppMainView.java`) : JFrame avec titre "MessageApp", icône UBO, `CardLayout` pour la navigation.
+- **Barre de menu** : "Fichier" (Déconnexion, Quitter) et "?" (A propos).
 - **Sélecteur de répertoire** (`JFileChooser`).
 - **Look&Feel système**.
+
+### Ajouté — Thème Discord
+- **`DiscordTheme`** : palette de couleurs Discord (Dark Theme, Blurple, Green, Red) et polices centralisées.
+- **`DiscordButton`** : boutons sans bordure, coins arrondis, effet hover.
+- **`DiscordTextField`** / **`DiscordPasswordField`** : champs de saisie sur fond sombre.
+- **`DiscordRoundPanel`** : conteneur avec coins arrondis.
+
+### Ajouté — Authentification
+- **`LoginPanel`** : interface de connexion centrée dans une "carte", logo UBO, champ tag + mot de passe.
+- **`RegistrationPanel`** : formulaire d'inscription (nom, tag, mot de passe), validation des champs obligatoires et unicité du tag.
+- **`AccountController`** : logique de connexion (vérification tag + mot de passe) et d'inscription.
+- **Gestion de session** : `MessageApp` implémente `ISessionObserver`, navigation Login ↔ Registration ↔ Main.
+
+### Ajouté — Canaux
+- **`ChannelListView`** : sidebar gauche affichant les canaux (# public, 🔒 privé) avec recherche en temps réel.
+- **`ChannelController`** : création de canaux (public/privé), suppression (propriétaire uniquement), quitter un canal privé, recherche.
+- **`IChannelView`** / **`IChannelActionListener`** : contrats MVC.
+
+### Ajouté — Messages
+- **`MessageListView`** : affichage des messages avec avatar (initiale), @tag, date, mise en évidence des @mentions.
+- **`MessageInputView`** : barre de saisie avec compteur de caractères (max 200), autocomplétion des @mentions.
+- **`MessageController`** : envoi de message dans un canal, suppression (auteur uniquement), recherche, filtrage par canal.
+- **`IMessageView`** / **`IMessageActionListener`** : contrats MVC.
+
+### Ajouté — Utilisateurs
+- **`UserListView`** : sidebar droite affichant les utilisateurs avec avatar, indicateur de présence (pastille verte/grise), recherche.
+- **`UserController`** : affichage et recherche des utilisateurs.
+- **`IUserView`** / **`IUserActionListener`** : contrats MVC.
+- **Menu contextuel** : clic droit → "Envoyer un message privé" (stub).

@@ -78,6 +78,13 @@ public class MessageController implements IMessageActionListener, IDatabaseObser
     }
 
     /**
+     * Désenregistre cet observateur (SKILL.md §4.6).
+     */
+    public void dispose() {
+        mDataManager.removeObserver(this);
+    }
+
+    /**
      * Change le canal courant et rafraîchit les messages.
      */
     public void setCurrentChannel(Channel channel) {

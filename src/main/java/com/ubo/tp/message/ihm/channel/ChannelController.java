@@ -1,8 +1,12 @@
 package main.java.com.ubo.tp.message.ihm.channel;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 import main.java.com.ubo.tp.message.core.DataManager;
 import main.java.com.ubo.tp.message.core.database.IDatabaseObserver;
@@ -49,6 +53,16 @@ public class ChannelController implements IChannelActionListener, IDatabaseObser
     private String mCurrentSearchQuery = "";
 
     /**
+     * Timestamps de la dernière lecture par canal (pour messages non lus).
+     */
+    private Map<UUID, Long> mLastReadTimestamps = new HashMap<UUID, Long>();
+
+    /**
+     * Identifiants des canaux ayant des messages non lus.
+     */
+    private Set<UUID> mUnreadChannelIds = new HashSet<UUID>();
+
+    /**
      * Constructeur.
      *
      * @param dataManager gestionnaire de données
@@ -82,12 +96,26 @@ public class ChannelController implements IChannelActionListener, IDatabaseObser
         return this.mSelectedChannel;
     }
 
+    /**
+     * Désenregistre cet observateur (SKILL.md §4.6).
+     */
+    public void dispose() {
+        mDataManager.removeObserver(this);
+    }
+
     // ========== IChannelActionListener ==========
 
     @Override
     public void onChannelSelected(Channel channel) {
         this.mSelectedChannel = channel;
         this.mView.setSelectedChannel(channel);
+
+        // Marquer comme lu
+        if (channel != null) {
+            mLastReadTimestamps.put(channel.getUuid(), System.currentTimeMillis());
+            mUnreadChannelIds.remove(channel.getUuid());
+            mView.setUnreadChannels(mUnreadChannelIds);
+        }
 
         if (mSelectionListener != null) {
             mSelectionListener.onChannelSelected(channel);
@@ -110,7 +138,7 @@ public class ChannelController implements IChannelActionListener, IDatabaseObser
         if (currentUser == null)
             return;
 
-        List<User> members = new ArrayList<>();
+        List<User> members = new ArrayList<User>();
         members.add(currentUser);
         Channel channel = new Channel(currentUser, name, members);
         mDataManager.sendChannel(channel);
@@ -129,7 +157,6 @@ public class ChannelController implements IChannelActionListener, IDatabaseObser
         }
 
         // Note: La suppression se fait via le système de fichiers / DataManager
-        // Pour l'instant on retire juste le canal sélectionné
         if (mSelectedChannel != null && mSelectedChannel.getUuid().equals(channel.getUuid())) {
             mSelectedChannel = null;
             mView.setSelectedChannel(null);
@@ -149,6 +176,7 @@ public class ChannelController implements IChannelActionListener, IDatabaseObser
         }
 
         channel.removeUser(currentUser);
+        mDataManager.sendChannel(channel);
         refreshChannels();
     }
 
@@ -156,6 +184,69 @@ public class ChannelController implements IChannelActionListener, IDatabaseObser
     public void onSearchChannel(String query) {
         this.mCurrentSearchQuery = query.toLowerCase();
         refreshChannels();
+    }
+
+    @Override
+    public void onManageMembers(Channel channel) {
+        User currentUser = mSession.getConnectedUser();
+        if (currentUser == null)
+            return;
+
+        // Seul le propriétaire peut gérer les membres
+        if (!channel.getCreator().getUuid().equals(currentUser.getUuid())) {
+            mView.showError("Seul le propriétaire peut gérer les membres de ce canal.");
+            return;
+        }
+
+        // Récupérer les membres actuels et les utilisateurs disponibles
+        List<User> currentMembers = new ArrayList<User>(channel.getUsers());
+        // Ajouter le créateur s'il n'est pas déjà dans la liste
+        boolean creatorFound = false;
+        for (User u : currentMembers) {
+            if (u.getUuid().equals(channel.getCreator().getUuid())) {
+                creatorFound = true;
+                break;
+            }
+        }
+        if (!creatorFound) {
+            currentMembers.add(0, channel.getCreator());
+        }
+
+        // Utilisateurs non membres
+        Set<User> allUsers = mDataManager.getUsers();
+        List<User> availableUsers = new ArrayList<User>();
+        for (User user : allUsers) {
+            boolean isMember = false;
+            for (User member : currentMembers) {
+                if (member.getUuid().equals(user.getUuid())) {
+                    isMember = true;
+                    break;
+                }
+            }
+            if (!isMember) {
+                availableUsers.add(user);
+            }
+        }
+
+        mView.showManageMembersDialog(channel, currentMembers, availableUsers);
+    }
+
+    @Override
+    public void onAddUserToChannel(Channel channel, User user) {
+        channel.addUser(user);
+        mDataManager.sendChannel(channel);
+    }
+
+    @Override
+    public void onRemoveUserFromChannel(Channel channel, User user) {
+        // Le créateur ne peut pas être retiré
+        if (user.getUuid().equals(channel.getCreator().getUuid())) {
+            mView.showError("Le créateur ne peut pas être retiré du canal.");
+            return;
+        }
+
+        channel.removeUser(user);
+        mDataManager.sendChannel(channel);
     }
 
     // ========== IDatabaseObserver ==========
@@ -177,27 +268,48 @@ public class ChannelController implements IChannelActionListener, IDatabaseObser
 
     @Override
     public void notifyMessageAdded(Message addedMessage) {
-        /* Non utilisé */ }
+        // Vérifier si le message concerne un canal non sélectionné → marquer comme non
+        // lu
+        UUID recipientId = addedMessage.getRecipient();
+        User currentUser = mSession.getConnectedUser();
+
+        if (currentUser != null
+                && !addedMessage.getSender().getUuid().equals(currentUser.getUuid())) {
+            // Si le canal du message n'est pas le canal sélectionné
+            if (mSelectedChannel == null || !mSelectedChannel.getUuid().equals(recipientId)) {
+                Long lastRead = mLastReadTimestamps.get(recipientId);
+                if (lastRead == null || addedMessage.getEmissionDate() > lastRead) {
+                    mUnreadChannelIds.add(recipientId);
+                    mView.setUnreadChannels(mUnreadChannelIds);
+                }
+            }
+        }
+    }
 
     @Override
     public void notifyMessageDeleted(Message deletedMessage) {
-        /* Non utilisé */ }
+        /* Non utilisé */
+    }
 
     @Override
     public void notifyMessageModified(Message modifiedMessage) {
-        /* Non utilisé */ }
+        /* Non utilisé */
+    }
 
     @Override
     public void notifyUserAdded(User addedUser) {
-        /* Non utilisé */ }
+        /* Non utilisé */
+    }
 
     @Override
     public void notifyUserDeleted(User deletedUser) {
-        /* Non utilisé */ }
+        /* Non utilisé */
+    }
 
     @Override
     public void notifyUserModified(User modifiedUser) {
-        /* Non utilisé */ }
+        /* Non utilisé */
+    }
 
     // ========== Méthodes internes ==========
 
@@ -208,7 +320,7 @@ public class ChannelController implements IChannelActionListener, IDatabaseObser
     private void refreshChannels() {
         Set<Channel> allChannels = mDataManager.getChannels();
         User currentUser = mSession.getConnectedUser();
-        List<Channel> filteredChannels = new ArrayList<>();
+        List<Channel> filteredChannels = new ArrayList<Channel>();
 
         for (Channel channel : allChannels) {
             // Filtrer les canaux privés dont l'utilisateur n'est pas membre
@@ -238,6 +350,7 @@ public class ChannelController implements IChannelActionListener, IDatabaseObser
         }
 
         mView.setChannels(filteredChannels);
+        mView.setUnreadChannels(mUnreadChannelIds);
     }
 
     /**

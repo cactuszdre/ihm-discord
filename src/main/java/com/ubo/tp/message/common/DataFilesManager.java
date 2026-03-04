@@ -42,6 +42,11 @@ public class DataFilesManager {
 	protected static final String PROPERTY_KEY_NAME = "Name";
 
 	/**
+	 * Clé du fichier de propriété pour l'attribut online
+	 */
+	protected static final String PROPERTY_KEY_USER_ONLINE = "Online";
+
+	/**
 	 * Clé du fichier de propriété pour l'attribut Sender
 	 */
 	protected static final String PROPERTY_KEY_MESSAGE_SENDER = "Sender";
@@ -96,8 +101,10 @@ public class DataFilesManager {
 			String tag = properties.getProperty(PROPERTY_KEY_USER_TAG, "NoTag");
 			String password = decrypt(properties.getProperty(PROPERTY_KEY_USER_PASSWORD, "NoPassword"));
 			String name = properties.getProperty(PROPERTY_KEY_NAME, "NoName");
+			String online = properties.getProperty(PROPERTY_KEY_USER_ONLINE, "false");
 
 			user = new User(UUID.fromString(uuid), tag, password, name);
+			user.setOnline(Boolean.parseBoolean(online));
 		}
 
 		return user;
@@ -118,6 +125,7 @@ public class DataFilesManager {
 		properties.setProperty(PROPERTY_KEY_USER_TAG, user.getUserTag());
 		properties.setProperty(PROPERTY_KEY_USER_PASSWORD, encrypt(user.getUserPassword()));
 		properties.setProperty(PROPERTY_KEY_NAME, user.getName());
+		properties.setProperty(PROPERTY_KEY_USER_ONLINE, String.valueOf(user.isOnline()));
 
 		PropertiesManager.writeProperties(properties, destFileName);
 	}

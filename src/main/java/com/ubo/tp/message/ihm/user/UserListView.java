@@ -226,9 +226,9 @@ public class UserListView extends JPanel implements IUserView {
         row.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseEntered(MouseEvent e) {
-                row.setBackground(new Color(60, 63, 69));
-                avatarPanel.setBackground(new Color(60, 63, 69));
-                infoPanel.setBackground(new Color(60, 63, 69));
+                row.setBackground(DiscordTheme.BACKGROUND_HOVER);
+                avatarPanel.setBackground(DiscordTheme.BACKGROUND_HOVER);
+                infoPanel.setBackground(DiscordTheme.BACKGROUND_HOVER);
             }
 
             @Override

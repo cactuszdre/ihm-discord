@@ -61,6 +61,11 @@ public class MessageApp implements ISessionObserver {
 	protected MessageAppMainView mMainView;
 
 	/**
+	 * Utilisateur précédemment connecté (sauvegardé pour le logout).
+	 */
+	private User mLastConnectedUser;
+
+	/**
 	 * Constructeur.
 	 *
 	 * @param dataManager gestionnaire de données
@@ -148,6 +153,16 @@ public class MessageApp implements ISessionObserver {
 						mMessageController.setCurrentChannel(channel);
 					}
 				});
+
+		// ---- Liaison utilisateur → DM (canal privé) ----
+		mUserController.setDirectMessageListener(
+				new UserController.IDirectMessageListener() {
+					@Override
+					public void onDirectMessageChannelReady(Channel dmChannel) {
+						// Sélectionner le canal DM dans la vue des canaux
+						mChannelController.onChannelSelected(dmChannel);
+					}
+				});
 	}
 
 	/**
@@ -215,6 +230,11 @@ public class MessageApp implements ISessionObserver {
 		System.out.println("[SESSION] Utilisateur connecté : " + connectedUser.getName()
 				+ " (@" + connectedUser.getUserTag() + ")");
 
+		// Sauvegarder la référence pour le logout et marquer comme en ligne
+		mLastConnectedUser = connectedUser;
+		connectedUser.setOnline(true);
+		mDataManager.sendUser(connectedUser);
+
 		// Câblage des contrôleurs du panel principal
 		initMainControllers();
 
@@ -225,6 +245,26 @@ public class MessageApp implements ISessionObserver {
 	@Override
 	public void notifyLogout() {
 		System.out.println("[SESSION] Déconnexion");
+
+		// Marquer l'utilisateur comme hors ligne
+		// Note: mSession.getConnectedUser() est déjà null à ce stade,
+		// on utilise la référence sauvegardée lors du login.
+		if (mLastConnectedUser != null) {
+			mLastConnectedUser.setOnline(false);
+			mDataManager.sendUser(mLastConnectedUser);
+			mLastConnectedUser = null;
+		}
+
+		// Désenregistrement des observers (SKILL.md §4.6)
+		if (mChannelController != null) {
+			mChannelController.dispose();
+		}
+		if (mMessageController != null) {
+			mMessageController.dispose();
+		}
+		if (mUserController != null) {
+			mUserController.dispose();
+		}
 
 		// Nettoyage des contrôleurs
 		mChannelController = null;

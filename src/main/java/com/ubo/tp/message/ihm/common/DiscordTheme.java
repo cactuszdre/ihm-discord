@@ -24,6 +24,8 @@ public class DiscordTheme {
     public static final Color BLURPLE_HOVER = new Color(71, 82, 196); // #4752c4
     public static final Color GREEN = new Color(87, 242, 135); // #57F287
     public static final Color RED = new Color(237, 66, 69); // #ED4245
+    public static final Color BACKGROUND_HOVER = new Color(60, 63, 69); // Hover sur les lignes
+    public static final Color WARNING = new Color(250, 166, 26); // Orange avertissement
 
     // Polices
     public static final Font FONT_HEADER = new Font("SansSerif", Font.BOLD, 24);

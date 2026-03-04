@@ -1,7 +1,6 @@
 package main.java.com.ubo.tp.message.ihm.channel;
 
 import java.awt.BorderLayout;
-import java.awt.Color;
 import java.awt.Component;
 import java.awt.Cursor;
 import java.awt.Dimension;
@@ -9,27 +8,31 @@ import java.awt.FlowLayout;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
+import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JLabel;
+import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
-import javax.swing.JMenuItem;
 import javax.swing.JScrollPane;
 import javax.swing.ScrollPaneConstants;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 
 import main.java.com.ubo.tp.message.datamodel.Channel;
-import main.java.com.ubo.tp.message.ihm.common.DiscordButton;
+import main.java.com.ubo.tp.message.datamodel.User;
 import main.java.com.ubo.tp.message.ihm.common.DiscordTextField;
 import main.java.com.ubo.tp.message.ihm.common.DiscordTheme;
 
@@ -58,6 +61,16 @@ public class ChannelListView extends JPanel implements IChannelView {
      * Canal actuellement sélectionné.
      */
     private Channel mSelectedChannel;
+
+    /**
+     * Identifiants des canaux ayant des messages non lus.
+     */
+    private Set<UUID> mUnreadChannelIds = new HashSet<UUID>();
+
+    /**
+     * Liste des canaux actuellement affichés (pour rebuilds).
+     */
+    private List<Channel> mCurrentChannels = new java.util.ArrayList<Channel>();
 
     /**
      * Constructeur.
@@ -118,7 +131,6 @@ public class ChannelListView extends JPanel implements IChannelView {
         mSearchField = new DiscordTextField();
         mSearchField.setFont(DiscordTheme.FONT_SMALL);
         mSearchField.setBorder(BorderFactory.createEmptyBorder(6, 8, 6, 8));
-        // Placeholder effect handled via tooltip
         mSearchField.setToolTipText("Rechercher un canal...");
         mSearchField.getDocument().addDocumentListener(new DocumentListener() {
             @Override
@@ -217,9 +229,17 @@ public class ChannelListView extends JPanel implements IChannelView {
 
     @Override
     public void setChannels(List<Channel> channels) {
+        this.mCurrentChannels = channels;
+        rebuildChannelList();
+    }
+
+    /**
+     * Reconstruit la liste visuelle des canaux.
+     */
+    private void rebuildChannelList() {
         mChannelListPanel.removeAll();
 
-        for (final Channel channel : channels) {
+        for (final Channel channel : mCurrentChannels) {
             JPanel channelRow = createChannelRow(channel);
             mChannelListPanel.add(channelRow);
         }
@@ -233,7 +253,6 @@ public class ChannelListView extends JPanel implements IChannelView {
     @Override
     public void setSelectedChannel(Channel channel) {
         this.mSelectedChannel = channel;
-        // Refresh pour mettre à jour la surbrillance
         mChannelListPanel.repaint();
     }
 
@@ -247,10 +266,33 @@ public class ChannelListView extends JPanel implements IChannelView {
         this.mActionListener = listener;
     }
 
+    @Override
+    public void showManageMembersDialog(Channel channel, List<User> currentMembers, List<User> availableUsers) {
+        ChannelMembersDialog dialog = new ChannelMembersDialog(
+                this, channel, currentMembers, availableUsers, mActionListener);
+        dialog.setVisible(true);
+    }
+
+    @Override
+    public void setUnreadChannels(Set<UUID> unreadChannelIds) {
+        Set<UUID> previousUnread = this.mUnreadChannelIds;
+        this.mUnreadChannelIds = unreadChannelIds;
+
+        // Notification sonore si nouveau canal non lu
+        if (unreadChannelIds.size() > previousUnread.size()) {
+            Toolkit.getDefaultToolkit().beep();
+        }
+
+        // Reconstruire la liste pour ajouter/retirer les badges
+        rebuildChannelList();
+    }
+
     /**
      * Crée un composant visuel pour un canal.
      */
     private JPanel createChannelRow(final Channel channel) {
+        final boolean isUnread = mUnreadChannelIds.contains(channel.getUuid());
+
         JPanel row = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 4)) {
             @Override
             protected void paintComponent(Graphics g) {
@@ -279,11 +321,34 @@ public class ChannelListView extends JPanel implements IChannelView {
         prefixLabel.setForeground(DiscordTheme.TEXT_MUTED);
         row.add(prefixLabel);
 
-        // Nom du canal
+        // Nom du canal (gras si non lu)
         JLabel nameLabel = new JLabel(channel.getName());
-        nameLabel.setFont(DiscordTheme.FONT_NORMAL);
-        nameLabel.setForeground(DiscordTheme.TEXT_NORMAL);
+        if (isUnread) {
+            nameLabel.setFont(DiscordTheme.FONT_NORMAL.deriveFont(java.awt.Font.BOLD));
+            nameLabel.setForeground(DiscordTheme.TEXT_HEADER);
+        } else {
+            nameLabel.setFont(DiscordTheme.FONT_NORMAL);
+            nameLabel.setForeground(DiscordTheme.TEXT_NORMAL);
+        }
         row.add(nameLabel);
+
+        // Badge de message non lu (point coloré)
+        if (isUnread) {
+            JPanel badge = new JPanel() {
+                @Override
+                protected void paintComponent(Graphics g) {
+                    super.paintComponent(g);
+                    Graphics2D g2 = (Graphics2D) g.create();
+                    g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                    g2.setColor(DiscordTheme.RED);
+                    g2.fillOval(0, 0, 8, 8);
+                    g2.dispose();
+                }
+            };
+            badge.setPreferredSize(new Dimension(8, 8));
+            badge.setOpaque(false);
+            row.add(badge);
+        }
 
         // Clic → sélection
         row.addMouseListener(new MouseAdapter() {
@@ -297,7 +362,7 @@ public class ChannelListView extends JPanel implements IChannelView {
             @Override
             public void mouseEntered(MouseEvent e) {
                 if (mSelectedChannel == null || !mSelectedChannel.getUuid().equals(channel.getUuid())) {
-                    row.setBackground(new Color(60, 63, 69));
+                    row.setBackground(DiscordTheme.BACKGROUND_HOVER);
                 }
             }
 
@@ -307,7 +372,7 @@ public class ChannelListView extends JPanel implements IChannelView {
             }
         });
 
-        // Clic droit → menu contextuel (supprimer / quitter)
+        // Clic droit → menu contextuel (supprimer / quitter / gérer membres)
         row.addMouseListener(new MouseAdapter() {
             @Override
             public void mousePressed(MouseEvent e) {
@@ -333,6 +398,21 @@ public class ChannelListView extends JPanel implements IChannelView {
         menu.setBackground(DiscordTheme.BACKGROUND_TERTIARY);
 
         if (channel.isPrivate()) {
+            // Gérer les membres
+            JMenuItem manageMembersItem = new JMenuItem("Gérer les membres");
+            manageMembersItem.setBackground(DiscordTheme.BACKGROUND_TERTIARY);
+            manageMembersItem.setForeground(DiscordTheme.TEXT_NORMAL);
+            manageMembersItem.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent ev) {
+                    if (mActionListener != null) {
+                        mActionListener.onManageMembers(channel);
+                    }
+                }
+            });
+            menu.add(manageMembersItem);
+
+            // Supprimer
             JMenuItem deleteItem = new JMenuItem("Supprimer le canal");
             deleteItem.setForeground(DiscordTheme.RED);
             deleteItem.setBackground(DiscordTheme.BACKGROUND_TERTIARY);
@@ -346,6 +426,7 @@ public class ChannelListView extends JPanel implements IChannelView {
             });
             menu.add(deleteItem);
 
+            // Quitter
             JMenuItem leaveItem = new JMenuItem("Quitter le canal");
             leaveItem.setForeground(DiscordTheme.TEXT_NORMAL);
             leaveItem.setBackground(DiscordTheme.BACKGROUND_TERTIARY);

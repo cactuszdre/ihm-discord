@@ -39,6 +39,11 @@ public class UserController implements IUserActionListener, IDatabaseObserver {
     private String mCurrentSearchQuery = "";
 
     /**
+     * Listener de message direct (pour notifier le coordinateur).
+     */
+    private IDirectMessageListener mDirectMessageListener;
+
+    /**
      * Constructeur.
      *
      * @param dataManager gestionnaire de données
@@ -58,6 +63,20 @@ public class UserController implements IUserActionListener, IDatabaseObserver {
         this.refreshUsers();
     }
 
+    /**
+     * Définit le listener pour les messages directs.
+     */
+    public void setDirectMessageListener(IDirectMessageListener listener) {
+        this.mDirectMessageListener = listener;
+    }
+
+    /**
+     * Désenregistre cet observateur (SKILL.md §4.6).
+     */
+    public void dispose() {
+        mDataManager.removeObserver(this);
+    }
+
     // ========== IUserActionListener ==========
 
     @Override
@@ -67,10 +86,34 @@ public class UserController implements IUserActionListener, IDatabaseObserver {
     }
 
     @Override
-    public void onSendDirectMessage(User user) {
-        // Note: pour l'instant, afficher un message. L'implémentation complète
-        // nécessiterait la création d'un canal privé dédié.
-        mView.showError("Fonctionnalité \"Message direct à @" + user.getUserTag() + "\" à implémenter.");
+    public void onSendDirectMessage(User targetUser) {
+        User currentUser = mSession.getConnectedUser();
+        if (currentUser == null)
+            return;
+
+        // Ne pas envoyer un DM à soi-même
+        if (currentUser.getUuid().equals(targetUser.getUuid())) {
+            mView.showError("Vous ne pouvez pas vous envoyer un message privé.");
+            return;
+        }
+
+        // Chercher un canal DM existant entre les deux utilisateurs
+        Channel dmChannel = findExistingDmChannel(currentUser, targetUser);
+
+        if (dmChannel == null) {
+            // Créer un nouveau canal DM privé
+            String dmName = "DM-" + currentUser.getUserTag() + "-" + targetUser.getUserTag();
+            List<User> members = new ArrayList<User>();
+            members.add(currentUser);
+            members.add(targetUser);
+            dmChannel = new Channel(currentUser, dmName, members);
+            mDataManager.sendChannel(dmChannel);
+        }
+
+        // Notifier le coordinateur pour sélectionner ce canal
+        if (mDirectMessageListener != null) {
+            mDirectMessageListener.onDirectMessageChannelReady(dmChannel);
+        }
     }
 
     // ========== IDatabaseObserver ==========
@@ -92,27 +135,33 @@ public class UserController implements IUserActionListener, IDatabaseObserver {
 
     @Override
     public void notifyMessageAdded(Message addedMessage) {
-        /* Non utilisé */ }
+        /* Non utilisé */
+    }
 
     @Override
     public void notifyMessageDeleted(Message deletedMessage) {
-        /* Non utilisé */ }
+        /* Non utilisé */
+    }
 
     @Override
     public void notifyMessageModified(Message modifiedMessage) {
-        /* Non utilisé */ }
+        /* Non utilisé */
+    }
 
     @Override
     public void notifyChannelAdded(Channel addedChannel) {
-        /* Non utilisé */ }
+        /* Non utilisé */
+    }
 
     @Override
     public void notifyChannelDeleted(Channel deletedChannel) {
-        /* Non utilisé */ }
+        /* Non utilisé */
+    }
 
     @Override
     public void notifyChannelModified(Channel modifiedChannel) {
-        /* Non utilisé */ }
+        /* Non utilisé */
+    }
 
     // ========== Méthodes internes ==========
 
@@ -121,7 +170,7 @@ public class UserController implements IUserActionListener, IDatabaseObserver {
      */
     private void refreshUsers() {
         Set<User> allUsers = mDataManager.getUsers();
-        List<User> filteredUsers = new ArrayList<>();
+        List<User> filteredUsers = new ArrayList<User>();
 
         for (User user : allUsers) {
             // Filtrer par recherche
@@ -134,5 +183,63 @@ public class UserController implements IUserActionListener, IDatabaseObserver {
         }
 
         mView.setUsers(filteredUsers);
+    }
+
+    /**
+     * Recherche un canal DM existant entre deux utilisateurs.
+     * Un canal DM est un canal privé dont le nom commence par "DM-"
+     * et qui contient exactement les deux utilisateurs.
+     *
+     * @param user1 premier utilisateur
+     * @param user2 deuxième utilisateur
+     * @return le canal DM existant ou null
+     */
+    private Channel findExistingDmChannel(User user1, User user2) {
+        Set<Channel> allChannels = mDataManager.getChannels();
+
+        for (Channel channel : allChannels) {
+            if (!channel.isPrivate() || !channel.getName().startsWith("DM-")) {
+                continue;
+            }
+
+            // Vérifier que les deux utilisateurs sont membres
+            List<User> members = channel.getUsers();
+            boolean hasUser1 = false;
+            boolean hasUser2 = false;
+
+            // Vérifier le créateur
+            if (channel.getCreator().getUuid().equals(user1.getUuid())) {
+                hasUser1 = true;
+            }
+            if (channel.getCreator().getUuid().equals(user2.getUuid())) {
+                hasUser2 = true;
+            }
+
+            // Vérifier les membres
+            for (User member : members) {
+                if (member.getUuid().equals(user1.getUuid())) {
+                    hasUser1 = true;
+                }
+                if (member.getUuid().equals(user2.getUuid())) {
+                    hasUser2 = true;
+                }
+            }
+
+            if (hasUser1 && hasUser2) {
+                return channel;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Interface pour notifier de la création/sélection d'un canal DM.
+     */
+    public interface IDirectMessageListener {
+        /**
+         * Appelé quand un canal DM est prêt (existant ou nouvellement créé).
+         */
+        void onDirectMessageChannelReady(Channel dmChannel);
     }
 }
