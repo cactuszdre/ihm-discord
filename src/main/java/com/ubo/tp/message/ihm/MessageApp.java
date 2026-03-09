@@ -88,6 +88,21 @@ public class MessageApp implements ISessionObserver {
 
 		// Initialisation du répertoire d'échange
 		this.initDirectory();
+
+		// Réinitialiser tous les utilisateurs à offline au démarrage
+		// (nettoyage des statuts obsolètes de sessions précédentes)
+		this.resetAllUsersOffline();
+
+		// Ajout d'un shutdown hook pour déconnecter proprement à la fermeture
+		Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
+			@Override
+			public void run() {
+				if (mLastConnectedUser != null) {
+					mLastConnectedUser.setOnline(false);
+					mDataManager.sendUser(mLastConnectedUser);
+				}
+			}
+		}));
 	}
 
 	/**
@@ -210,6 +225,20 @@ public class MessageApp implements ISessionObserver {
 	 */
 	protected void initDirectory(String directoryPath) {
 		mDataManager.setExchangeDirectory(directoryPath);
+	}
+
+	/**
+	 * Réinitialise tous les utilisateurs à offline.
+	 * Appelé au démarrage pour nettoyer les statuts obsolètes
+	 * (ex: fermeture brutale sans logout).
+	 */
+	private void resetAllUsersOffline() {
+		for (User user : mDataManager.getUsers()) {
+			if (user.isOnline()) {
+				user.setOnline(false);
+				mDataManager.sendUser(user);
+			}
+		}
 	}
 
 	public void show() {
