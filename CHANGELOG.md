@@ -1,5 +1,23 @@
 # Changelog
 
+## [2.0.2] - 2026-03-09
+
+### Ajouté — Build Gradle
+- **`build.gradle`** : configuration Gradle avec plugins `java` et `application`, `sourceSets` adapté au layout non-standard (`src/` comme racine), manifest JAR avec `Main-Class`.
+- **`settings.gradle`** : nom du projet (`MessageApp`).
+- **Wrapper Gradle 8.12** (`gradlew`, `gradlew.bat`, `gradle/wrapper/`) : permet de builder sans installation globale de Gradle.
+- Génération du JAR exécutable dans `build/libs/MessageApp.jar`.
+
+### Commandes disponibles
+- `.\gradlew.bat build` — Compiler et générer le JAR.
+- `.\gradlew.bat run` — Lancer l'application.
+- `.\gradlew.bat jar` — Générer uniquement le JAR.
+
+### Modifié
+- **`.gitignore`** : ajout de `.gradle/` et `build/`.
+
+---
+
 ## [2.0.1] - 2026-03-04
 
 ### Corrigé
