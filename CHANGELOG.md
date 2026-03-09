@@ -1,5 +1,23 @@
 # Changelog
 
+## [2.0.3] - 2026-03-09
+
+### Ajouté — SonarQube (Docker)
+- **`docker-compose.yml`** : serveur SonarQube LTS Community (v9.9.8) lancé via Docker (base H2 embarquée, sans PostgreSQL).
+- **`build.gradle`** : plugin `org.sonarqube` (v5.1.0.4882) avec configuration projet (`sonar.projectKey`, `sonar.host.url`, token via `$SONAR_TOKEN`).
+
+### Ajouté — CI/CD GitHub Actions
+- **`.github/workflows/ci.yml`** : pipeline CI/CD déclenché sur `push` et `pull_request` vers `main`.
+  - Build & compilation avec Gradle (Java 8, Temurin).
+  - Génération du JAR et upload comme artifact téléchargeable.
+
+### Commandes disponibles
+- `docker compose up -d` — Démarrer SonarQube (http://localhost:9000).
+- `docker compose down` — Arrêter SonarQube.
+- `$env:SONAR_TOKEN="<token>"; .\gradlew sonar` — Lancer l'analyse de code.
+
+---
+
 ## [2.0.2] - 2026-03-09
 
 ### Ajouté — Build Gradle

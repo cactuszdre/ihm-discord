@@ -1,6 +1,17 @@
 plugins {
     id 'java'
     id 'application'
+    id 'org.sonarqube' version '5.1.0.4882'
+}
+
+sonar {
+    properties {
+        property "sonar.projectKey", "MessageApp"
+        property "sonar.projectName", "MessageApp"
+        property "sonar.host.url", "http://localhost:9000"
+        property "sonar.token", System.getenv("SONAR_TOKEN") ?: ""
+        property "sonar.java.source", "1.8"
+    }
 }
 
 java {
