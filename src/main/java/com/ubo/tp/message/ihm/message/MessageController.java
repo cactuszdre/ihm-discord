@@ -43,7 +43,7 @@ public class MessageController implements IMessageActionListener, IDatabaseObser
     /**
      * Vue de saisie de message.
      */
-    private MessageInputView mMessageInputView;
+    private IMessageInputView mMessageInputView;
 
     /**
      * Canal actuellement sélectionné.
@@ -64,7 +64,7 @@ public class MessageController implements IMessageActionListener, IDatabaseObser
      * @param messageInputView vue de saisie de message
      */
     public MessageController(DataManager dataManager, Session session,
-            IMessageView messageListView, MessageInputView messageInputView) {
+            IMessageView messageListView, IMessageInputView messageInputView) {
         this.mDataManager = dataManager;
         this.mSession = session;
         this.mMessageListView = messageListView;

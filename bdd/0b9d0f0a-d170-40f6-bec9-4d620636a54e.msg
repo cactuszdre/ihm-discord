@@ -1,7 +1,0 @@
-#
-#Tue Mar 03 15:17:04 CET 2026
-Date=1772547424133
-Recipient=9ab0ab44-1d37-4db7-bbcf-787678b28880
-Sender=acde1c33-44a9-44f4-9872-974148777bc1
-Text=qfqq
-UUID=0b9d0f0a-d170-40f6-bec9-4d620636a54e

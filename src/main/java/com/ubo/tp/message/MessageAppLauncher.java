@@ -51,7 +51,8 @@ public class MessageAppLauncher {
 
 			@Override
 			public void onJavaFXSelected() {
-				MessageAppFX.launch(dataManager);
+				MessageAppFX.setDataManager(dataManager);
+				javafx.application.Application.launch(MessageAppFX.class, new String[] {});
 			}
 		});
 	}

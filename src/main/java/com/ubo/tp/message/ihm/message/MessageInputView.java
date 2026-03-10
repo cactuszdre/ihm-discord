@@ -24,7 +24,7 @@ import main.java.com.ubo.tp.message.ihm.common.DiscordTheme;
  * Barre de saisie avec champ texte, bouton envoi, compteur de caractères,
  * et menu d'autocomplétion des @mentions.
  */
-public class MessageInputView extends JPanel {
+public class MessageInputView extends JPanel implements IMessageInputView {
 
     /**
      * Taille maximale d'un message (SRS-MAP-MSG-008).

@@ -1,33 +1,29 @@
 package main.java.com.ubo.tp.message.ihm.javafx;
 
-import java.io.File;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Set;
-
 import javafx.application.Application;
 import javafx.application.Platform;
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
+import javafx.scene.control.Hyperlink;
 import javafx.scene.control.Label;
-import javafx.scene.control.ListView;
+import javafx.scene.control.Menu;
+import javafx.scene.control.MenuBar;
+import javafx.scene.control.MenuItem;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
-import javafx.scene.control.cell.TextFieldListCell;
 import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.Priority;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
-import javafx.scene.text.Font;
 import javafx.stage.Stage;
-import javafx.util.StringConverter;
+import javafx.animation.FadeTransition;
+import javafx.animation.PauseTransition;
+import javafx.util.Duration;
+
+import java.io.File;
+import java.util.UUID;
 
 import main.java.com.ubo.tp.message.core.DataManager;
 import main.java.com.ubo.tp.message.core.session.ISessionObserver;
@@ -35,32 +31,50 @@ import main.java.com.ubo.tp.message.core.session.Session;
 import main.java.com.ubo.tp.message.datamodel.Channel;
 import main.java.com.ubo.tp.message.datamodel.Message;
 import main.java.com.ubo.tp.message.datamodel.User;
+import main.java.com.ubo.tp.message.ihm.channel.ChannelController;
+import main.java.com.ubo.tp.message.ihm.message.MessageController;
+import main.java.com.ubo.tp.message.ihm.notification.NotificationManager;
+import main.java.com.ubo.tp.message.ihm.user.UserController;
 
 /**
- * Application JavaFX principale.
- * Équivalent JavaFX de MessageApp (Swing).
+ * Application JavaFX — Shell mince qui réutilise les Controllers Swing
+ * existants.
+ *
+ * Architecture :
+ * - Login/Inscription : logique locale (AccountController couplé à Swing)
+ * - Canaux : ChannelController + ChannelListViewFX (IChannelView)
+ * - Messages: MessageController + MessageListViewFX (IMessageView) +
+ * MessageInputViewFX
+ * - Users : UserController + UserListViewFX (IUserView)
  */
 public class MessageAppFX extends Application implements ISessionObserver {
 
+    /** DataManager partagé (initialisé avant launch()). */
     private static DataManager sDataManager;
-    private Session mSession;
+
     private Stage mPrimaryStage;
+    private Session mSession;
     private User mConnectedUser;
+    private User mLastConnectedUser;
 
-    // Vues JavaFX
-    private ListView<Channel> mChannelListView;
-    private VBox mMessagesBox;
-    private TextField mMessageInput;
-    private Channel mCurrentChannel;
+    // Controllers (ceux du Swing, réutilisés)
+    private ChannelController mChannelController;
+    private MessageController mMessageController;
+    private UserController mUserController;
+    private NotificationManager mNotificationManager;
 
-    public static void launch(DataManager dataManager) {
-        sDataManager = dataManager;
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                Application.launch(MessageAppFX.class);
-            }
-        }).start();
+    // Vues FX
+    private ChannelListViewFX mChannelListView;
+    private MessageListViewFX mMessageListView;
+    private MessageInputViewFX mMessageInputView;
+    private UserListViewFX mUserListView;
+
+    // Toast container
+    private StackPane mToastContainer;
+
+    /** Appelé par MessageAppLauncher avant launch(). */
+    public static void setDataManager(DataManager dm) {
+        sDataManager = dm;
     }
 
     @Override
@@ -71,24 +85,19 @@ public class MessageAppFX extends Application implements ISessionObserver {
         mSession = new Session();
         mSession.addObserver(this);
 
-        // Initialiser le répertoire d'échange
         initDirectory();
-
-        // Afficher le login
         showLoginScene();
+        mPrimaryStage.show();
 
-        mPrimaryStage.setOnCloseRequest(event -> {
-            if (mConnectedUser != null) {
-                mConnectedUser.setOnline(false);
-                sDataManager.sendUser(mConnectedUser);
+        // Shutdown hook
+        mPrimaryStage.setOnCloseRequest(e -> {
+            if (mLastConnectedUser != null) {
+                mLastConnectedUser.setOnline(false);
+                sDataManager.sendUser(mLastConnectedUser);
             }
             Platform.exit();
         });
-
-        mPrimaryStage.show();
     }
-
-    // ========== Initialisation ==========
 
     private void initDirectory() {
         File defaultDir = new File("bdd");
@@ -98,273 +107,252 @@ public class MessageAppFX extends Application implements ISessionObserver {
         }
     }
 
-    // ========== Scènes ==========
+    // ========== LOGIN ==========
 
     private void showLoginScene() {
-        VBox root = new VBox(15);
+        VBox root = new VBox(12);
         root.setAlignment(Pos.CENTER);
         root.setPadding(new Insets(40));
         root.setStyle("-fx-background-color: #36393f;");
 
-        Label titleLabel = new Label("MessageApp");
-        titleLabel.setFont(Font.font("Segoe UI", 28));
-        titleLabel.setStyle("-fx-text-fill: #ffffff; -fx-font-weight: bold;");
+        Label title = FXHelper.styledLabel("MessageApp", 28, true, "#ffffff");
+        Label subtitle = FXHelper.styledLabel("Heureux de vous revoir !", 14, false, "#b9bbbe");
 
-        Label subtitleLabel = new Label("Mode JavaFX — Connexion");
-        subtitleLabel.setFont(Font.font("Segoe UI", 14));
-        subtitleLabel.setStyle("-fx-text-fill: #b9bbbe;");
+        Label tagLabel = FXHelper.styledLabel("TAG UTILISATEUR (@)", 11, false, "#b9bbbe");
+        TextField tagField = FXHelper.styledTextField("Entrez votre tag...");
 
-        Label tagLabel = new Label("TAG UTILISATEUR (@)");
-        tagLabel.setStyle("-fx-text-fill: #b9bbbe; -fx-font-size: 11px;");
-
-        TextField tagField = new TextField();
-        tagField.setPromptText("Entrez votre tag...");
-        tagField.setMaxWidth(300);
-        tagField.setStyle(
-                "-fx-background-color: #202225; -fx-text-fill: #dcddde; "
-                        + "-fx-prompt-text-fill: #72767d; -fx-border-color: #202225; "
-                        + "-fx-padding: 10; -fx-font-size: 14px;");
-
-        Label passwordLabel = new Label("MOT DE PASSE");
-        passwordLabel.setStyle("-fx-text-fill: #b9bbbe; -fx-font-size: 11px;");
-
-        PasswordField passwordField = new PasswordField();
-        passwordField.setPromptText("Entrez votre mot de passe...");
-        passwordField.setMaxWidth(300);
-        passwordField.setStyle(
-                "-fx-background-color: #202225; -fx-text-fill: #dcddde; "
-                        + "-fx-prompt-text-fill: #72767d; -fx-border-color: #202225; "
-                        + "-fx-padding: 10; -fx-font-size: 14px;");
+        Label passwordLabel = FXHelper.styledLabel("MOT DE PASSE", 11, false, "#b9bbbe");
+        PasswordField passwordField = FXHelper.styledPasswordField("Mot de passe...");
 
         Label errorLabel = new Label();
         errorLabel.setStyle("-fx-text-fill: #ed4245; -fx-font-size: 12px;");
 
-        Button loginButton = new Button("Se connecter");
-        loginButton.setMaxWidth(300);
-        loginButton.setStyle(
-                "-fx-background-color: #5865f2; -fx-text-fill: white; "
-                        + "-fx-font-size: 14px; -fx-font-weight: bold; "
-                        + "-fx-padding: 10 20; -fx-cursor: hand;");
-
-        loginButton.setOnAction(event -> {
+        Button loginBtn = FXHelper.styledButton("Se connecter", "#5865f2");
+        loginBtn.setMaxWidth(300);
+        loginBtn.setOnAction(e -> {
             String tag = tagField.getText().trim();
             String password = passwordField.getText();
-
             if (tag.isEmpty()) {
-                errorLabel.setText("Veuillez saisir votre tag utilisateur.");
+                errorLabel.setText("Veuillez saisir votre tag.");
                 return;
             }
             if (password.isEmpty()) {
                 errorLabel.setText("Veuillez saisir votre mot de passe.");
                 return;
             }
-
             User user = findUserByTag(tag);
             if (user == null) {
-                errorLabel.setText("Aucun utilisateur trouvé avec ce tag.");
+                errorLabel.setText("Aucun utilisateur trouvé.");
                 return;
             }
             if (!user.getUserPassword().equals(password)) {
                 errorLabel.setText("Mot de passe incorrect.");
                 return;
             }
-
             mSession.connect(user);
         });
 
-        root.getChildren().addAll(
-                titleLabel, subtitleLabel,
-                tagLabel, tagField,
-                passwordLabel, passwordField,
-                errorLabel, loginButton);
+        Hyperlink registerLink = new Hyperlink("Besoin d'un compte ? S'inscrire");
+        registerLink.setStyle("-fx-text-fill: #00aff4; -fx-font-size: 12px;");
+        registerLink.setOnAction(e -> showRegistrationScene());
 
-        Scene scene = new Scene(root, 450, 500);
-        mPrimaryStage.setScene(scene);
+        root.getChildren().addAll(title, subtitle, tagLabel, tagField,
+                passwordLabel, passwordField, errorLabel, loginBtn, registerLink);
+        mPrimaryStage.setScene(new Scene(root, 450, 520));
     }
+
+    // ========== INSCRIPTION ==========
+
+    private void showRegistrationScene() {
+        VBox root = new VBox(12);
+        root.setAlignment(Pos.CENTER);
+        root.setPadding(new Insets(40));
+        root.setStyle("-fx-background-color: #36393f;");
+
+        Label title = FXHelper.styledLabel("Créer un compte", 28, true, "#ffffff");
+        Label subtitle = FXHelper.styledLabel("Rejoignez MessageApp", 14, false, "#b9bbbe");
+
+        Label nameLabel = FXHelper.styledLabel("NOM D'UTILISATEUR", 11, false, "#b9bbbe");
+        TextField nameField = FXHelper.styledTextField("Votre nom...");
+
+        Label tagLabel = FXHelper.styledLabel("TAG UTILISATEUR (@)", 11, false, "#b9bbbe");
+        TextField tagField = FXHelper.styledTextField("Votre tag unique...");
+
+        Label passLabel = FXHelper.styledLabel("MOT DE PASSE", 11, false, "#b9bbbe");
+        PasswordField passField = FXHelper.styledPasswordField("Choisissez un mot de passe...");
+
+        Label errorLabel = new Label();
+        errorLabel.setStyle("-fx-text-fill: #ed4245; -fx-font-size: 12px;");
+
+        Button registerBtn = FXHelper.styledButton("S'inscrire", "#57f287");
+        registerBtn.setMaxWidth(300);
+        registerBtn.setStyle(registerBtn.getStyle() + "-fx-text-fill: #000000;");
+        registerBtn.setOnAction(e -> {
+            String name = nameField.getText().trim();
+            String tag = tagField.getText().trim();
+            String pwd = passField.getText();
+            if (name.isEmpty()) {
+                errorLabel.setText("Le nom est obligatoire.");
+                return;
+            }
+            if (tag.isEmpty()) {
+                errorLabel.setText("Le tag est obligatoire.");
+                return;
+            }
+            if (findUserByTag(tag) != null) {
+                errorLabel.setText("Ce tag est déjà utilisé.");
+                return;
+            }
+            sDataManager.sendUser(new User(UUID.randomUUID(), tag, pwd, name));
+            showLoginScene();
+        });
+
+        Hyperlink loginLink = new Hyperlink("Déjà un compte ? Se connecter");
+        loginLink.setStyle("-fx-text-fill: #00aff4; -fx-font-size: 12px;");
+        loginLink.setOnAction(e -> showLoginScene());
+
+        root.getChildren().addAll(title, subtitle, nameLabel, nameField,
+                tagLabel, tagField, passLabel, passField,
+                errorLabel, registerBtn, loginLink);
+        mPrimaryStage.setScene(new Scene(root, 450, 580));
+    }
+
+    // ========== MAIN SCENE ==========
 
     private void showMainScene() {
         BorderPane root = new BorderPane();
         root.setStyle("-fx-background-color: #36393f;");
 
-        // === Sidebar gauche : canaux ===
-        VBox sidebar = new VBox(10);
-        sidebar.setPadding(new Insets(10));
-        sidebar.setPrefWidth(220);
-        sidebar.setStyle("-fx-background-color: #2f3136;");
+        // Toast
+        mToastContainer = new StackPane();
+        mToastContainer.setPickOnBounds(false);
+        mToastContainer.setAlignment(Pos.BOTTOM_RIGHT);
+        mToastContainer.setPadding(new Insets(0, 20, 20, 0));
 
-        Label channelsTitle = new Label("Canaux");
-        channelsTitle.setStyle("-fx-text-fill: #b9bbbe; -fx-font-size: 12px; -fx-font-weight: bold;");
-
-        mChannelListView = new ListView<>();
-        mChannelListView.setStyle("-fx-background-color: #2f3136; -fx-control-inner-background: #2f3136;");
-        mChannelListView.setCellFactory(param -> {
-            TextFieldListCell<Channel> cell = new TextFieldListCell<>(new StringConverter<Channel>() {
-                @Override
-                public String toString(Channel channel) {
-                    return channel == null ? "" : "# " + channel.getName();
-                }
-
-                @Override
-                public Channel fromString(String string) {
-                    return null;
-                }
-            });
-            cell.setStyle("-fx-text-fill: #dcddde; -fx-background-color: transparent;");
-            return cell;
+        // Menu bar
+        MenuBar menuBar = new MenuBar();
+        menuBar.setStyle("-fx-background-color: #202225;");
+        Menu fichier = new Menu("Fichier");
+        MenuItem logout = new MenuItem("Se déconnecter");
+        logout.setOnAction(e -> mSession.disconnect());
+        fichier.getItems().add(logout);
+        Menu help = new Menu("?");
+        MenuItem about = new MenuItem("À propos");
+        about.setOnAction(e -> {
+            Alert a = new Alert(Alert.AlertType.INFORMATION);
+            a.setTitle("À propos");
+            a.setHeaderText("MessageApp — JavaFX");
+            a.setContentText("UBO M1 IHM — Simulation de messagerie.\nVersion JavaFX");
+            a.showAndWait();
         });
+        help.getItems().add(about);
+        menuBar.getMenus().addAll(fichier, help);
+        root.setTop(menuBar);
 
-        mChannelListView.getSelectionModel().selectedItemProperty().addListener(
-                (obs, oldVal, newVal) -> {
-                    if (newVal != null) {
-                        mCurrentChannel = newVal;
-                        refreshMessages();
-                    }
-                });
+        // === Vues FX ===
+        mChannelListView = new ChannelListViewFX();
+        mChannelListView.setConnectedUser(mConnectedUser);
 
-        // Charger les canaux
-        ObservableList<Channel> channels = FXCollections.observableArrayList(sDataManager.getChannels());
-        mChannelListView.setItems(channels);
+        mMessageListView = new MessageListViewFX();
+        mMessageInputView = new MessageInputViewFX();
 
-        // Bouton déconnexion
-        Button logoutBtn = new Button("Déconnexion");
-        logoutBtn.setMaxWidth(Double.MAX_VALUE);
-        logoutBtn.setStyle(
-                "-fx-background-color: #ed4245; -fx-text-fill: white; "
-                        + "-fx-font-size: 12px; -fx-cursor: hand;");
-        logoutBtn.setOnAction(event -> mSession.disconnect());
+        mUserListView = new UserListViewFX();
 
-        Label userLabel = new Label("Connecté : " + mConnectedUser.getName());
-        userLabel.setStyle("-fx-text-fill: #57f287; -fx-font-size: 11px;");
-
-        sidebar.getChildren().addAll(channelsTitle, mChannelListView, userLabel, logoutBtn);
-        VBox.setVgrow(mChannelListView, Priority.ALWAYS);
-
-        // === Zone centrale : messages ===
-        VBox center = new VBox(10);
-        center.setPadding(new Insets(10));
+        // Centre = messages + input
+        VBox center = new VBox();
         center.setStyle("-fx-background-color: #36393f;");
+        javafx.scene.layout.VBox.setVgrow(mMessageListView, javafx.scene.layout.Priority.ALWAYS);
+        center.getChildren().addAll(mMessageListView, mMessageInputView);
 
-        mMessagesBox = new VBox(5);
-        mMessagesBox.setStyle("-fx-background-color: #36393f;");
+        // Info utilisateur en bas du sidebar
+        Label userLabel = FXHelper.styledLabel("● " + mConnectedUser.getName(), 12, false, "#57f287");
+        Button logoutBtn = FXHelper.styledButton("Déconnexion", "#ed4245");
+        logoutBtn.setMaxWidth(Double.MAX_VALUE);
+        logoutBtn.setStyle(logoutBtn.getStyle() + "-fx-font-size: 11px;");
+        logoutBtn.setOnAction(e -> mSession.disconnect());
+        mChannelListView.getChildren().addAll(userLabel, logoutBtn);
 
-        javafx.scene.control.ScrollPane scrollPane = new javafx.scene.control.ScrollPane(mMessagesBox);
-        scrollPane.setFitToWidth(true);
-        scrollPane.setStyle("-fx-background: #36393f; -fx-background-color: #36393f;");
-        VBox.setVgrow(scrollPane, Priority.ALWAYS);
-
-        // Barre d'envoi
-        HBox inputBar = new HBox(10);
-        inputBar.setAlignment(Pos.CENTER);
-
-        mMessageInput = new TextField();
-        mMessageInput.setPromptText("Envoyer un message...");
-        mMessageInput.setStyle(
-                "-fx-background-color: #40444b; -fx-text-fill: #dcddde; "
-                        + "-fx-prompt-text-fill: #72767d; -fx-padding: 10; -fx-font-size: 14px;");
-        HBox.setHgrow(mMessageInput, Priority.ALWAYS);
-
-        Button sendBtn = new Button("Envoyer");
-        sendBtn.setStyle(
-                "-fx-background-color: #5865f2; -fx-text-fill: white; "
-                        + "-fx-font-size: 13px; -fx-padding: 10 20; -fx-cursor: hand;");
-        sendBtn.setOnAction(event -> sendMessage());
-        mMessageInput.setOnAction(event -> sendMessage());
-
-        inputBar.getChildren().addAll(mMessageInput, sendBtn);
-
-        center.getChildren().addAll(scrollPane, inputBar);
-
-        root.setLeft(sidebar);
+        root.setLeft(mChannelListView);
         root.setCenter(center);
+        root.setRight(mUserListView);
 
-        Scene scene = new Scene(root, 900, 600);
-        mPrimaryStage.setScene(scene);
+        StackPane mainStack = new StackPane(root, mToastContainer);
+        mPrimaryStage.setScene(new Scene(mainStack, 1000, 650));
+
+        // === Câblage MVC : réutilisation des controllers existants ===
+        initMainControllers();
     }
 
-    // ========== Actions ==========
+    /**
+     * Câble les controllers existants avec les nouvelles vues JavaFX.
+     * Même logique que MessageApp.initMainControllers() du Swing.
+     */
+    private void initMainControllers() {
+        // Canaux
+        mChannelController = new ChannelController(sDataManager, mSession, mChannelListView);
 
-    private void sendMessage() {
-        if (mCurrentChannel == null || mConnectedUser == null)
-            return;
+        // Messages
+        mMessageController = new MessageController(
+                sDataManager, mSession, mMessageListView, mMessageInputView);
 
-        String text = mMessageInput.getText().trim();
-        if (text.isEmpty())
-            return;
-        if (text.length() > 200) {
-            showAlert("Le message ne peut pas dépasser 200 caractères.");
-            return;
-        }
+        // Utilisateurs
+        mUserController = new UserController(sDataManager, mSession, mUserListView);
+        mUserListView.setCurrentUser(mConnectedUser);
 
-        Message message = new Message(mConnectedUser, mCurrentChannel.getUuid(), text);
-        sDataManager.sendMessage(message);
-        mMessageInput.clear();
+        // Canal sélectionné → afficher messages
+        mChannelController.setChannelSelectionListener(channel -> mMessageController.setCurrentChannel(channel));
 
-        // Rafraîchir après un court délai pour laisser le WatchableDirectory détecter
-        // le fichier
-        new Thread(() -> {
-            try {
-                Thread.sleep(500);
-            } catch (InterruptedException e) {
-                /* ignore */ }
-            Platform.runLater(() -> refreshMessages());
-        }).start();
-    }
+        // DM → sélectionner canal
+        mUserController.setDirectMessageListener(dmChannel -> mChannelController.onChannelSelected(dmChannel));
 
-    private void refreshMessages() {
-        if (mCurrentChannel == null || mMessagesBox == null)
-            return;
-
-        mMessagesBox.getChildren().clear();
-
-        Set<Message> allMessages = sDataManager.getMessages();
-        List<Message> channelMessages = new ArrayList<>();
-
-        for (Message message : allMessages) {
-            if (message.getRecipient().equals(mCurrentChannel.getUuid())) {
-                channelMessages.add(message);
-            }
-        }
-
-        Collections.sort(channelMessages, new Comparator<Message>() {
-            @Override
-            public int compare(Message m1, Message m2) {
-                return Long.compare(m1.getEmissionDate(), m2.getEmissionDate());
-            }
+        // Suppression compte → déconnexion
+        mUserController.setAccountDeletionListener(() -> {
+            mLastConnectedUser = null;
+            mSession.disconnect();
         });
 
-        for (Message msg : channelMessages) {
-            VBox bubble = new VBox(2);
-            bubble.setPadding(new Insets(5, 10, 5, 10));
+        // Notifications
+        mNotificationManager = new NotificationManager(sDataManager, mSession);
+    }
 
-            Label authorLabel = new Label(msg.getSender().getName());
-            authorLabel.setStyle("-fx-text-fill: #ffffff; -fx-font-weight: bold; -fx-font-size: 13px;");
+    // ========== Toast ==========
 
-            Label textLabel = new Label(msg.getText());
-            textLabel.setWrapText(true);
-            textLabel.setStyle("-fx-text-fill: #dcddde; -fx-font-size: 14px;");
+    private void showToast(String message) {
+        if (mToastContainer == null)
+            return;
+        Platform.runLater(() -> {
+            Label toast = new Label(message);
+            toast.setStyle("-fx-background-color: #202225; -fx-text-fill: #ffffff; "
+                    + "-fx-padding: 12 20; -fx-background-radius: 8; -fx-font-size: 13px;");
+            toast.setMaxWidth(350);
+            toast.setWrapText(true);
+            mToastContainer.getChildren().add(toast);
 
-            bubble.getChildren().addAll(authorLabel, textLabel);
-            mMessagesBox.getChildren().add(bubble);
-        }
+            FadeTransition fadeIn = new FadeTransition(Duration.millis(300), toast);
+            fadeIn.setFromValue(0);
+            fadeIn.setToValue(1);
+            fadeIn.play();
+
+            PauseTransition pause = new PauseTransition(Duration.seconds(3));
+            pause.setOnFinished(e -> {
+                FadeTransition fadeOut = new FadeTransition(Duration.millis(300), toast);
+                fadeOut.setFromValue(1);
+                fadeOut.setToValue(0);
+                fadeOut.setOnFinished(ev -> mToastContainer.getChildren().remove(toast));
+                fadeOut.play();
+            });
+            pause.play();
+        });
     }
 
     // ========== Utilitaires ==========
 
     private User findUserByTag(String tag) {
-        Set<User> users = sDataManager.getUsers();
-        for (User user : users) {
-            if (user.getUserTag().equalsIgnoreCase(tag)) {
-                return user;
-            }
+        for (User u : sDataManager.getUsers()) {
+            if (u.getUserTag().equalsIgnoreCase(tag))
+                return u;
         }
         return null;
-    }
-
-    private void showAlert(String message) {
-        Alert alert = new Alert(Alert.AlertType.ERROR);
-        alert.setTitle("Erreur");
-        alert.setContentText(message);
-        alert.showAndWait();
     }
 
     // ========== ISessionObserver ==========
@@ -372,21 +360,38 @@ public class MessageAppFX extends Application implements ISessionObserver {
     @Override
     public void notifyLogin(User connectedUser) {
         mConnectedUser = connectedUser;
+        mLastConnectedUser = connectedUser;
         connectedUser.setOnline(true);
         sDataManager.sendUser(connectedUser);
         System.out.println("[SESSION-FX] Connecté : " + connectedUser.getName());
-
         Platform.runLater(() -> showMainScene());
     }
 
     @Override
     public void notifyLogout() {
-        if (mConnectedUser != null) {
-            mConnectedUser.setOnline(false);
-            sDataManager.sendUser(mConnectedUser);
-            mConnectedUser = null;
-        }
         System.out.println("[SESSION-FX] Déconnexion");
+
+        if (mLastConnectedUser != null) {
+            mLastConnectedUser.setOnline(false);
+            sDataManager.sendUser(mLastConnectedUser);
+            mLastConnectedUser = null;
+        }
+
+        // Dispose controllers
+        if (mChannelController != null)
+            mChannelController.dispose();
+        if (mMessageController != null)
+            mMessageController.dispose();
+        if (mUserController != null)
+            mUserController.dispose();
+        if (mNotificationManager != null)
+            mNotificationManager.dispose();
+
+        mChannelController = null;
+        mMessageController = null;
+        mUserController = null;
+        mNotificationManager = null;
+        mConnectedUser = null;
 
         Platform.runLater(() -> showLoginScene());
     }
