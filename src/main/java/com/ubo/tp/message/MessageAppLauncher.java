@@ -5,7 +5,8 @@ import main.java.com.ubo.tp.message.core.database.Database;
 import main.java.com.ubo.tp.message.core.database.DbConnector;
 import main.java.com.ubo.tp.message.core.database.EntityManager;
 import main.java.com.ubo.tp.message.ihm.MessageApp;
-import mock.MessageAppMock;
+import main.java.com.ubo.tp.message.ihm.ModeSelectionDialog;
+import main.java.com.ubo.tp.message.ihm.javafx.MessageAppFX;
 
 /**
  * Classe de lancement de l'application.
@@ -17,7 +18,7 @@ public class MessageAppLauncher {
 	/**
 	 * Indique si le mode bouchoné est activé.
 	 */
-	protected static boolean IS_MOCK_ENABLED = true;
+	protected static boolean IS_MOCK_ENABLED = false;
 
 	/**
 	 * Launcher.
@@ -35,13 +36,23 @@ public class MessageAppLauncher {
 		DbConnector dbConnector = new DbConnector(database);
 
 		if (IS_MOCK_ENABLED) {
-			MessageAppMock mock = new MessageAppMock(dbConnector, dataManager);
+			mock.MessageAppMock mock = new mock.MessageAppMock(dbConnector, dataManager);
 			mock.showGUI();
 		}
 
-		MessageApp messageApp = new MessageApp(dataManager);
-		messageApp.init();
-		messageApp.show();
+		// Affichage de la fenêtre de sélection de mode
+		ModeSelectionDialog.show(new ModeSelectionDialog.ModeSelectionListener() {
+			@Override
+			public void onSwingSelected() {
+				MessageApp messageApp = new MessageApp(dataManager);
+				messageApp.init();
+				messageApp.show();
+			}
 
+			@Override
+			public void onJavaFXSelected() {
+				MessageAppFX.launch(dataManager);
+			}
+		});
 	}
 }
