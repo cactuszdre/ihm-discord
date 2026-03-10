@@ -53,6 +53,11 @@ public class UserListView extends JPanel implements IUserView {
     private DiscordTextField mSearchField;
 
     /**
+     * Utilisateur actuellement connecté.
+     */
+    private User mCurrentUser;
+
+    /**
      * Constructeur.
      */
     public UserListView() {
@@ -158,6 +163,11 @@ public class UserListView extends JPanel implements IUserView {
         this.mActionListener = listener;
     }
 
+    @Override
+    public void setCurrentUser(User user) {
+        this.mCurrentUser = user;
+    }
+
     /**
      * Crée un composant visuel pour un utilisateur.
      */
@@ -239,7 +249,7 @@ public class UserListView extends JPanel implements IUserView {
             }
         });
 
-        // Clic droit → message direct
+        // Clic droit → menu contextuel
         row.addMouseListener(new MouseAdapter() {
             @Override
             public void mousePressed(MouseEvent e) {
@@ -264,6 +274,7 @@ public class UserListView extends JPanel implements IUserView {
         JPopupMenu menu = new JPopupMenu();
         menu.setBackground(DiscordTheme.BACKGROUND_TERTIARY);
 
+        // Option "Envoyer un message privé"
         JMenuItem dmItem = new JMenuItem("Envoyer un message privé");
         dmItem.setBackground(DiscordTheme.BACKGROUND_TERTIARY);
         dmItem.setForeground(DiscordTheme.TEXT_NORMAL);
@@ -276,6 +287,50 @@ public class UserListView extends JPanel implements IUserView {
             }
         });
         menu.add(dmItem);
+
+        // Options pour l'utilisateur connecté uniquement (SRS-MAP-USR-009, USR-010)
+        if (mCurrentUser != null && mCurrentUser.getUuid().equals(user.getUuid())) {
+            menu.addSeparator();
+
+            // Option "Modifier mon nom" (SRS-MAP-USR-009)
+            JMenuItem editNameItem = new JMenuItem("Modifier mon nom");
+            editNameItem.setBackground(DiscordTheme.BACKGROUND_TERTIARY);
+            editNameItem.setForeground(DiscordTheme.TEXT_NORMAL);
+            editNameItem.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent ev) {
+                    String newName = JOptionPane.showInputDialog(
+                            UserListView.this,
+                            "Entrez votre nouveau nom :",
+                            "Modifier le nom",
+                            JOptionPane.PLAIN_MESSAGE);
+                    if (newName != null && mActionListener != null) {
+                        mActionListener.onEditUserName(newName);
+                    }
+                }
+            });
+            menu.add(editNameItem);
+
+            // Option "Supprimer mon compte" (SRS-MAP-USR-010)
+            JMenuItem deleteAccountItem = new JMenuItem("Supprimer mon compte");
+            deleteAccountItem.setBackground(DiscordTheme.BACKGROUND_TERTIARY);
+            deleteAccountItem.setForeground(DiscordTheme.RED);
+            deleteAccountItem.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent ev) {
+                    int confirm = JOptionPane.showConfirmDialog(
+                            UserListView.this,
+                            "Êtes-vous sûr de vouloir supprimer votre compte ?\nCette action est irréversible.",
+                            "Supprimer le compte",
+                            JOptionPane.YES_NO_OPTION,
+                            JOptionPane.WARNING_MESSAGE);
+                    if (confirm == JOptionPane.YES_OPTION && mActionListener != null) {
+                        mActionListener.onDeleteAccount();
+                    }
+                }
+            });
+            menu.add(deleteAccountItem);
+        }
 
         menu.show(e.getComponent(), e.getX(), e.getY());
     }

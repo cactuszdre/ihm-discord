@@ -1,0 +1,7 @@
+#
+#Wed Mar 04 14:54:22 CET 2026
+Date=1772632462272
+Recipient=fe6843a0-85b4-4045-a332-91359fbc7066
+Sender=acde1c33-44a9-44f4-9872-974148777bc1
+Text=couc
+UUID=803338c5-6f1d-4975-8bde-8d0c91bb8eda

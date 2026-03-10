@@ -17,4 +17,16 @@ public interface IUserActionListener {
      * Appelé lorsque l'utilisateur envoie un message direct à un autre utilisateur.
      */
     void onSendDirectMessage(User user);
+
+    /**
+     * Appelé lorsque l'utilisateur connecté modifie son nom (SRS-MAP-USR-009).
+     *
+     * @param newName le nouveau nom de l'utilisateur.
+     */
+    void onEditUserName(String newName);
+
+    /**
+     * Appelé lorsque l'utilisateur connecté supprime son compte (SRS-MAP-USR-010).
+     */
+    void onDeleteAccount();
 }

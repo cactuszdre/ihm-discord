@@ -103,6 +103,15 @@ public class DataManager {
 	}
 
 	/**
+	 * Supprime un utilisateur du système (SRS-MAP-USR-010).
+	 *
+	 * @param user l'utilisateur à supprimer.
+	 */
+	public void deleteUser(User user) {
+		this.mEntityManager.deleteUserFile(user);
+	}
+
+	/**
 	 * Ecrit un Canal.
 	 *
 	 * @param channel

@@ -24,4 +24,11 @@ public interface IUserView {
      * Définit le listener des actions utilisateur.
      */
     void setActionListener(IUserActionListener listener);
+
+    /**
+     * Définit l'utilisateur actuellement connecté.
+     *
+     * @param user l'utilisateur connecté.
+     */
+    void setCurrentUser(User user);
 }

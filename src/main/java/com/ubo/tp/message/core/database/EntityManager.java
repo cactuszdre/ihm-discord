@@ -452,6 +452,30 @@ public class EntityManager implements IWatchableDirectoryObserver {
 	}
 
 	/**
+	 * Suppression du fichier correspondant à l'utilisateur (SRS-MAP-USR-010).
+	 *
+	 * @param user l'utilisateur dont le fichier doit être supprimé.
+	 */
+	public void deleteUserFile(User user) {
+		if (mDirectoryPath != null) {
+			// Recherche du fichier utilisateur dans le répertoire d'échange
+			File directory = new File(mDirectoryPath);
+			File[] files = directory.listFiles();
+			if (files != null) {
+				for (File file : files) {
+					if (file.getName().endsWith(Constants.USER_FILE_EXTENSION)
+							&& file.getName().contains(user.getUuid().toString())) {
+						file.delete();
+						return;
+					}
+				}
+			}
+		} else {
+			throw new RuntimeException("Le répertoire d'échange n'est pas configuré !");
+		}
+	}
+
+	/**
 	 * Génération du fichier correspondant à canal.
 	 *
 	 * @param user

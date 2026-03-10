@@ -1,0 +1,7 @@
+#
+#Mon Mar 09 09:31:37 CET 2026
+Date=1773045097080
+Recipient=fe6843a0-85b4-4045-a332-91359fbc7066
+Sender=acde1c33-44a9-44f4-9872-974148777bc1
+Text=coucou
+UUID=593ffa83-8590-4a3a-a17c-416bac33ef32

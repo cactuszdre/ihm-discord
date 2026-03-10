@@ -111,8 +111,11 @@ public class MessageAppMainView extends JFrame {
      */
     private void initFrame() {
         // Icône de la fenêtre
-        ImageIcon logoIcon = new ImageIcon(getClass().getResource(IMAGES_PATH + "logo_20.png"));
-        this.setIconImage(logoIcon.getImage());
+        java.net.URL logoUrl = getClass().getResource(IMAGES_PATH + "logo_20.png");
+        if (logoUrl != null) {
+            ImageIcon logoIcon = new ImageIcon(logoUrl);
+            this.setIconImage(logoIcon.getImage());
+        }
 
         // Configuration de la fenêtre
         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -146,8 +149,10 @@ public class MessageAppMainView extends JFrame {
 
         // Entrée "Quitter"
         JMenuItem quitterItem = new JMenuItem("Quitter");
-        ImageIcon exitIcon = new ImageIcon(getClass().getResource(IMAGES_PATH + "exitIcon_20.png"));
-        quitterItem.setIcon(exitIcon);
+        java.net.URL exitUrl = getClass().getResource(IMAGES_PATH + "exitIcon_20.png");
+        if (exitUrl != null) {
+            quitterItem.setIcon(new ImageIcon(exitUrl));
+        }
         quitterItem.setToolTipText("Fermer l'application");
         quitterItem.addActionListener(new ActionListener() {
             @Override
@@ -299,7 +304,8 @@ public class MessageAppMainView extends JFrame {
      * Affiche la boite de dialogue "A propos".
      */
     private void showAboutDialog() {
-        ImageIcon logoIcon = new ImageIcon(getClass().getResource(IMAGES_PATH + "logo_50.png"));
+        java.net.URL aboutUrl = getClass().getResource(IMAGES_PATH + "logo_50.png");
+        ImageIcon logoIcon = (aboutUrl != null) ? new ImageIcon(aboutUrl) : null;
         JOptionPane.showMessageDialog(
                 this,
                 "UBO M2-TIIL\nDépartement Informatique",

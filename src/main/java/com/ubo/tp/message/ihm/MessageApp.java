@@ -17,6 +17,7 @@ import main.java.com.ubo.tp.message.datamodel.User;
 import main.java.com.ubo.tp.message.ihm.channel.ChannelController;
 import main.java.com.ubo.tp.message.ihm.login.AccountController;
 import main.java.com.ubo.tp.message.ihm.message.MessageController;
+import main.java.com.ubo.tp.message.ihm.notification.NotificationManager;
 import main.java.com.ubo.tp.message.ihm.user.UserController;
 
 /**
@@ -56,6 +57,11 @@ public class MessageApp implements ISessionObserver {
 	protected UserController mUserController;
 
 	/**
+	 * Gestionnaire de notifications (SRS-MAP-MSG-010).
+	 */
+	protected NotificationManager mNotificationManager;
+
+	/**
 	 * Vue principale de l'application.
 	 */
 	protected MessageAppMainView mMainView;
@@ -88,10 +94,6 @@ public class MessageApp implements ISessionObserver {
 
 		// Initialisation du répertoire d'échange
 		this.initDirectory();
-
-		// Réinitialiser tous les utilisateurs à offline au démarrage
-		// (nettoyage des statuts obsolètes de sessions précédentes)
-		this.resetAllUsersOffline();
 
 		// Ajout d'un shutdown hook pour déconnecter proprement à la fermeture
 		Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
@@ -160,6 +162,9 @@ public class MessageApp implements ISessionObserver {
 		mUserController = new UserController(
 				mDataManager, mSession, mMainView.getUserListView());
 
+		// Définir l'utilisateur connecté dans la vue utilisateurs
+		mMainView.getUserListView().setCurrentUser(mSession.getConnectedUser());
+
 		// ---- Liaison canal → messages ----
 		mChannelController.setChannelSelectionListener(
 				new ChannelController.IChannelSelectionListener() {
@@ -178,12 +183,34 @@ public class MessageApp implements ISessionObserver {
 						mChannelController.onChannelSelected(dmChannel);
 					}
 				});
+
+		// ---- Liaison suppression de compte → déconnexion (SRS-MAP-USR-010) ----
+		mUserController.setAccountDeletionListener(
+				new UserController.IAccountDeletionListener() {
+					@Override
+					public void onAccountDeleted() {
+						// Empêcher la sauvegarde du statut online lors du logout
+						mLastConnectedUser = null;
+						mSession.disconnect();
+					}
+				});
+
+		// ---- Notifications DM / @mention (SRS-MAP-MSG-010) ----
+		mNotificationManager = new NotificationManager(mDataManager, mSession);
 	}
 
 	/**
 	 * Initialisation du répertoire d'échange.
 	 */
 	protected void initDirectory() {
+		// Tentative d'utilisation automatique du dossier "bdd" du projet
+		File defaultDir = new File("bdd");
+		if (isValidExchangeDirectory(defaultDir)) {
+			this.initDirectory(defaultDir.getAbsolutePath());
+			return;
+		}
+
+		// Fallback : sélection manuelle
 		boolean validDirectory = false;
 
 		while (!validDirectory) {
@@ -294,11 +321,15 @@ public class MessageApp implements ISessionObserver {
 		if (mUserController != null) {
 			mUserController.dispose();
 		}
+		if (mNotificationManager != null) {
+			mNotificationManager.dispose();
+		}
 
 		// Nettoyage des contrôleurs
 		mChannelController = null;
 		mMessageController = null;
 		mUserController = null;
+		mNotificationManager = null;
 
 		// Retour au login
 		mMainView.showLoginPanel();

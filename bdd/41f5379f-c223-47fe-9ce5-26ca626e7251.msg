@@ -1,0 +1,7 @@
+#
+#Wed Feb 11 11:12:44 CET 2026
+Date=1770804764018
+Recipient=9ab0ab44-1d37-4db7-bbcf-787678b28880
+Sender=acde1c33-44a9-44f4-9872-974148777bc1
+Text=salut
+UUID=41f5379f-c223-47fe-9ce5-26ca626e7251

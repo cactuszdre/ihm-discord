@@ -1,0 +1,7 @@
+#
+#Tue Mar 10 08:52:12 CET 2026
+Date=1773129132577
+Recipient=9ab0ab44-1d37-4db7-bbcf-787678b28880
+Sender=e63541dd-5aa5-4549-84ec-cae7184ee3a4
+Text=df
+UUID=47da80bc-7492-4ed6-864b-ee325416f946

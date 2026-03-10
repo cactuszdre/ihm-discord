@@ -274,8 +274,7 @@ public class DataFilesManager {
 
 		Iterator<User> iterator = users.iterator();
 		while (iterator.hasNext()) {
-			usersAsString += iterator.next();
-
+			usersAsString += iterator.next().getUuid().toString();
 			if (iterator.hasNext()) {
 				usersAsString += USER_SEPARATOR;
 			}

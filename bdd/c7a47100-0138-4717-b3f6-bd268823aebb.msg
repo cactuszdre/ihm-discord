@@ -1,0 +1,7 @@
+#
+#Wed Mar 04 14:45:04 CET 2026
+Date=1772631904378
+Recipient=9ab0ab44-1d37-4db7-bbcf-787678b28880
+Sender=acde1c33-44a9-44f4-9872-974148777bc1
+Text=qdd
+UUID=c7a47100-0138-4717-b3f6-bd268823aebb

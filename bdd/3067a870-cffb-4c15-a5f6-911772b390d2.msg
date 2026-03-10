@@ -1,0 +1,7 @@
+#
+#Wed Mar 04 14:44:56 CET 2026
+Date=1772631896406
+Recipient=9ab0ab44-1d37-4db7-bbcf-787678b28880
+Sender=acde1c33-44a9-44f4-9872-974148777bc1
+Text=couo
+UUID=3067a870-cffb-4c15-a5f6-911772b390d2

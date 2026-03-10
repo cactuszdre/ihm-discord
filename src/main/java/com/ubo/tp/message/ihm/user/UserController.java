@@ -44,6 +44,11 @@ public class UserController implements IUserActionListener, IDatabaseObserver {
     private IDirectMessageListener mDirectMessageListener;
 
     /**
+     * Listener de suppression de compte (pour notifier le coordinateur).
+     */
+    private IAccountDeletionListener mAccountDeletionListener;
+
+    /**
      * Constructeur.
      *
      * @param dataManager gestionnaire de données
@@ -68,6 +73,13 @@ public class UserController implements IUserActionListener, IDatabaseObserver {
      */
     public void setDirectMessageListener(IDirectMessageListener listener) {
         this.mDirectMessageListener = listener;
+    }
+
+    /**
+     * Définit le listener pour la suppression de compte.
+     */
+    public void setAccountDeletionListener(IAccountDeletionListener listener) {
+        this.mAccountDeletionListener = listener;
     }
 
     /**
@@ -113,6 +125,39 @@ public class UserController implements IUserActionListener, IDatabaseObserver {
         // Notifier le coordinateur pour sélectionner ce canal
         if (mDirectMessageListener != null) {
             mDirectMessageListener.onDirectMessageChannelReady(dmChannel);
+        }
+    }
+
+    @Override
+    public void onEditUserName(String newName) {
+        // Validation (SRS-MAP-USR-009)
+        if (newName == null || newName.trim().isEmpty()) {
+            mView.showError("Le nom ne peut pas être vide.");
+            return;
+        }
+
+        User currentUser = mSession.getConnectedUser();
+        if (currentUser == null)
+            return;
+
+        // Mise à jour du nom et persistance
+        currentUser.setName(newName.trim());
+        mDataManager.sendUser(currentUser);
+        refreshUsers();
+    }
+
+    @Override
+    public void onDeleteAccount() {
+        User currentUser = mSession.getConnectedUser();
+        if (currentUser == null)
+            return;
+
+        // Suppression du compte via le DataManager
+        mDataManager.deleteUser(currentUser);
+
+        // Notifier le coordinateur pour déclencher la déconnexion
+        if (mAccountDeletionListener != null) {
+            mAccountDeletionListener.onAccountDeleted();
         }
     }
 
@@ -241,5 +286,15 @@ public class UserController implements IUserActionListener, IDatabaseObserver {
          * Appelé quand un canal DM est prêt (existant ou nouvellement créé).
          */
         void onDirectMessageChannelReady(Channel dmChannel);
+    }
+
+    /**
+     * Interface pour notifier de la suppression d'un compte utilisateur.
+     */
+    public interface IAccountDeletionListener {
+        /**
+         * Appelé quand l'utilisateur a supprimé son compte.
+         */
+        void onAccountDeleted();
     }
 }
