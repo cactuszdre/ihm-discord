@@ -112,6 +112,15 @@ public class DataManager {
 	}
 
 	/**
+	 * Supprime un message du système (SRS-MAP-MSG-006).
+	 *
+	 * @param message le message à supprimer.
+	 */
+	public void deleteMessage(Message message) {
+		this.mEntityManager.deleteMessageFile(message);
+	}
+
+	/**
 	 * Ecrit un Canal.
 	 *
 	 * @param channel

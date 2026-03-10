@@ -140,8 +140,9 @@ public class MessageController implements IMessageActionListener, IDatabaseObser
             return;
         }
 
-        // Note: suppression via le système de fichiers / DataManager
-        // Le refresh sera déclenché par le notifyMessageDeleted
+        // Suppression via le DataManager (le refresh sera déclenché par
+        // notifyMessageDeleted)
+        mDataManager.deleteMessage(message);
     }
 
     @Override

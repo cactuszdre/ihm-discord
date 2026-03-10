@@ -476,6 +476,30 @@ public class EntityManager implements IWatchableDirectoryObserver {
 	}
 
 	/**
+	 * Suppression du fichier correspondant au message (SRS-MAP-MSG-006).
+	 *
+	 * @param message le message dont le fichier doit être supprimé.
+	 */
+	public void deleteMessageFile(Message message) {
+		if (mDirectoryPath != null) {
+			// Recherche du fichier message dans le répertoire d'échange
+			File directory = new File(mDirectoryPath);
+			File[] files = directory.listFiles();
+			if (files != null) {
+				for (File file : files) {
+					if (file.getName().endsWith(Constants.MESSAGE_FILE_EXTENSION)
+							&& file.getName().contains(message.getUuid().toString())) {
+						file.delete();
+						return;
+					}
+				}
+			}
+		} else {
+			throw new RuntimeException("Le répertoire d'échange n'est pas configuré !");
+		}
+	}
+
+	/**
 	 * Génération du fichier correspondant à canal.
 	 *
 	 * @param user
