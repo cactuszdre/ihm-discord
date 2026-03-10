@@ -30,7 +30,7 @@ public class RegistrationPanel extends JPanel {
     /**
      * Chemin vers les images.
      */
-    private static final String IMAGES_PATH = "/main/resources/images/";
+    private static final String IMAGES_PATH = "/images/";
 
     /**
      * Champ de saisie du nom.

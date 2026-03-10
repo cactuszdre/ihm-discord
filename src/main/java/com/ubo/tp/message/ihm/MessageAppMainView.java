@@ -32,7 +32,7 @@ public class MessageAppMainView extends JFrame {
     /**
      * Chemin vers les images.
      */
-    private static final String IMAGES_PATH = "/main/resources/images/";
+    private static final String IMAGES_PATH = "/images/";
 
     /**
      * Constantes pour les noms de cartes.
