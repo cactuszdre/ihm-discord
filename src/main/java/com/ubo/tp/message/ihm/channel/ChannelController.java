@@ -156,11 +156,14 @@ public class ChannelController implements IChannelActionListener, IDatabaseObser
             return;
         }
 
-        // Note: La suppression se fait via le système de fichiers / DataManager
+        // Désélectionner si c'est le canal courant
         if (mSelectedChannel != null && mSelectedChannel.getUuid().equals(channel.getUuid())) {
             mSelectedChannel = null;
             mView.setSelectedChannel(null);
         }
+
+        // Suppression effective du canal
+        mDataManager.deleteChannel(channel);
     }
 
     @Override

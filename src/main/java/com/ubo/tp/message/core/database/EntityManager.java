@@ -500,6 +500,29 @@ public class EntityManager implements IWatchableDirectoryObserver {
 	}
 
 	/**
+	 * Suppression du fichier correspondant au canal (SRS-MAP-CHN-006).
+	 *
+	 * @param channel le canal dont le fichier doit être supprimé.
+	 */
+	public void deleteChannelFile(Channel channel) {
+		if (mDirectoryPath != null) {
+			File directory = new File(mDirectoryPath);
+			File[] files = directory.listFiles();
+			if (files != null) {
+				for (File file : files) {
+					if (file.getName().endsWith(Constants.CHANNEL_FILE_EXTENSION)
+							&& file.getName().contains(channel.getUuid().toString())) {
+						file.delete();
+						return;
+					}
+				}
+			}
+		} else {
+			throw new RuntimeException("Le répertoire d'échange n'est pas configuré !");
+		}
+	}
+
+	/**
 	 * Génération du fichier correspondant à canal.
 	 *
 	 * @param user

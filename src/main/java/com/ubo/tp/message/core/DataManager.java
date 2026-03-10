@@ -121,6 +121,15 @@ public class DataManager {
 	}
 
 	/**
+	 * Supprime un canal du système (SRS-MAP-CHN-006).
+	 *
+	 * @param channel le canal à supprimer.
+	 */
+	public void deleteChannel(Channel channel) {
+		this.mEntityManager.deleteChannelFile(channel);
+	}
+
+	/**
 	 * Ecrit un Canal.
 	 *
 	 * @param channel
