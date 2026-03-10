@@ -1,5 +1,36 @@
 # Changelog
 
+## [2.1.0] - 2026-03-10
+
+### Ajouté — Modification du nom d'utilisateur (SRS-MAP-USR-009)
+- **`IUserActionListener.onEditUserName(String)`** : nouvelle action pour modifier le nom.
+- **`UserController.onEditUserName()`** : validation (non vide) + persistance via `DataManager.sendUser()`.
+- **`UserListView`** : clic droit sur son propre nom → "Modifier mon nom" (`JOptionPane.showInputDialog`).
+- **`IUserView.setCurrentUser(User)`** : permet à la vue de savoir quel utilisateur est connecté (pour n'afficher les options que sur son propre profil).
+
+### Ajouté — Suppression de compte (SRS-MAP-USR-010)
+- **`IUserActionListener.onDeleteAccount()`** : nouvelle action pour supprimer son compte.
+- **`UserController.onDeleteAccount()`** : suppression du fichier `.usr` + notification du coordinateur.
+- **`UserController.IAccountDeletionListener`** : interface de callback pour déclencher la déconnexion après suppression.
+- **`DataManager.deleteUser(User)`** : nouvelle méthode de suppression.
+- **`EntityManager.deleteUserFile(User)`** : recherche et supprime le fichier utilisateur par UUID dans le répertoire d'échange.
+- **`UserListView`** : clic droit sur son propre nom → "Supprimer mon compte" (texte rouge, confirmation via `JOptionPane.showConfirmDialog`).
+- **`MessageApp`** : câblage `IAccountDeletionListener` → `mSession.disconnect()` avec `mLastConnectedUser = null` pour éviter la sauvegarde du statut online.
+
+### Ajouté — Notifications visuelles DM / @mention (SRS-MAP-MSG-010)
+- **`NotificationManager.java`** : `IDatabaseObserver` qui détecte les DM et les @mentions dans les messages entrants. Ignore les messages envoyés par l'utilisateur lui-même. Utilise un flag `mInitialized` pour ignorer le replay des messages existants lors de l'enregistrement de l'observateur.
+- **`ToastNotification.java`** : popup non-modal (`JWindow`) stylisé Discord, positionné en bas à droite de l'écran, auto-fermeture après 4 secondes via `Timer`.
+- **`MessageApp`** : instanciation dans `initMainControllers()`, `dispose()` dans `notifyLogout()`.
+
+### Corrigé
+- **Statut en ligne en multi-instance** : supprimé `resetAllUsersOffline()` au démarrage qui écrasait le statut online des instances déjà en cours d'exécution.
+- **NPE au lancement** : ajout de vérifications `null` sur le chargement des icônes (`logo_20.png`, `exitIcon_20.png`, `logo_50.png`) dans `MessageAppMainView`.
+
+### Amélioré
+- **Ouverture automatique du dossier `bdd/`** : l'application utilise automatiquement le dossier `bdd/` comme répertoire d'échange s'il existe, sans afficher le `JFileChooser`. Fallback vers le sélecteur manuel sinon.
+
+---
+
 ## [2.0.3] - 2026-03-09
 
 ### Ajouté — SonarQube (Docker)
