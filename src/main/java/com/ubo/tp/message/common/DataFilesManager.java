@@ -3,10 +3,13 @@ package main.java.com.ubo.tp.message.common;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Base64;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 import java.util.UUID;
 
 import main.java.com.ubo.tp.message.datamodel.Channel;
@@ -65,6 +68,11 @@ public class DataFilesManager {
 	 * Clé du fichier de propriété pour l'attribut Text
 	 */
 	protected static final String PROPERTY_KEY_MESSAGE_TEXT = "Text";
+
+	/**
+	 * Clé du fichier de propriété pour l'attribut Reactions
+	 */
+	protected static final String PROPERTY_KEY_MESSAGE_REACTIONS = "Reactions";
 
 	/**
 	 * Clé du fichier de propriété pour l'attribut Creator
@@ -201,7 +209,8 @@ public class DataFilesManager {
 			User sender = getUserFromUuid(senderUuid, userMap);
 			long emissionDate = Long.valueOf(emissionDateStr);
 
-			message = new Message(UUID.fromString(uuid), sender, UUID.fromString(recipientUuid), emissionDate, text);
+			message = new Message(UUID.fromString(uuid), sender, UUID.fromString(recipientUuid), emissionDate, text,
+					parseReactions(properties.getProperty(PROPERTY_KEY_MESSAGE_REACTIONS, "")));
 		}
 
 		return message;
@@ -223,6 +232,7 @@ public class DataFilesManager {
 		properties.setProperty(PROPERTY_KEY_MESSAGE_RECIPIENT, message.getRecipient().toString());
 		properties.setProperty(PROPERTY_KEY_MESSAGE_DATE, String.valueOf(message.getEmissionDate()));
 		properties.setProperty(PROPERTY_KEY_MESSAGE_TEXT, message.getText());
+		properties.setProperty(PROPERTY_KEY_MESSAGE_REACTIONS, serializeReactions(message.getReactions()));
 
 		PropertiesManager.writeProperties(properties, destFileName);
 	}
@@ -309,5 +319,66 @@ public class DataFilesManager {
 	public static String decrypt(String encryptedData) {
 		byte[] decodedBytes = Base64.getDecoder().decode(encryptedData);
 		return new String(decodedBytes);
+	}
+
+	/**
+	 * Sérialise les réactions en chaîne.
+	 * Format : "emoji1=uuid1,uuid2;emoji2=uuid3"
+	 */
+	protected String serializeReactions(Map<String, Set<UUID>> reactions) {
+		if (reactions == null || reactions.isEmpty()) {
+			return "";
+		}
+		StringBuilder sb = new StringBuilder();
+		boolean first = true;
+		for (Map.Entry<String, Set<UUID>> entry : reactions.entrySet()) {
+			if (!first) {
+				sb.append(";");
+			}
+			sb.append(entry.getKey()).append("=");
+			boolean firstUuid = true;
+			for (UUID uuid : entry.getValue()) {
+				if (!firstUuid) {
+					sb.append(",");
+				}
+				sb.append(uuid.toString());
+				firstUuid = false;
+			}
+			first = false;
+		}
+		return sb.toString();
+	}
+
+	/**
+	 * Parse les réactions depuis une chaîne.
+	 */
+	protected Map<String, Set<UUID>> parseReactions(String reactionsStr) {
+		Map<String, Set<UUID>> reactions = new HashMap<>();
+		if (reactionsStr == null || reactionsStr.isEmpty()) {
+			return reactions;
+		}
+		String[] pairs = reactionsStr.split(";");
+		for (String pair : pairs) {
+			if (pair.isEmpty()) continue;
+			String[] parts = pair.split("=", 2);
+			if (parts.length == 2) {
+				String emoji = parts[0];
+				Set<UUID> uuids = new HashSet<>();
+				String[] uuidStrs = parts[1].split(",");
+				for (String uuidStr : uuidStrs) {
+					if (!uuidStr.isEmpty()) {
+						try {
+							uuids.add(UUID.fromString(uuidStr));
+						} catch (IllegalArgumentException e) {
+							// UUID invalide, ignorer
+						}
+					}
+				}
+				if (!uuids.isEmpty()) {
+					reactions.put(emoji, uuids);
+				}
+			}
+		}
+		return reactions;
 	}
 }

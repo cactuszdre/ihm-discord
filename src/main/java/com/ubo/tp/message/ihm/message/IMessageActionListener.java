@@ -22,4 +22,9 @@ public interface IMessageActionListener {
      * Appelé lorsque l'utilisateur recherche dans les messages.
      */
     void onSearchMessage(String query);
+
+    /**
+     * Appelé lorsque l'utilisateur ajoute/retire une réaction sur un message.
+     */
+    void onAddReaction(Message message, String emoji);
 }

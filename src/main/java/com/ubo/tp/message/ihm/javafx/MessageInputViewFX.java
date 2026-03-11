@@ -1,6 +1,7 @@
 package main.java.com.ubo.tp.message.ihm.javafx;
 
 import java.util.List;
+import java.util.Map;
 
 import javafx.geometry.Insets;
 import javafx.scene.control.Button;
@@ -12,12 +13,13 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 
 import main.java.com.ubo.tp.message.datamodel.User;
+import main.java.com.ubo.tp.message.ihm.common.EmojiList;
 import main.java.com.ubo.tp.message.ihm.message.IMessageActionListener;
 import main.java.com.ubo.tp.message.ihm.message.IMessageInputView;
 
 /**
  * Vue JavaFX de saisie de message.
- * Barre de saisie avec champ texte, bouton envoi, compteur et @mention.
+ * Barre de saisie avec champ texte, bouton envoi, compteur, @mention et :emoji autocomplétion.
  */
 public class MessageInputViewFX extends HBox implements IMessageInputView {
 
@@ -51,9 +53,22 @@ public class MessageInputViewFX extends HBox implements IMessageInputView {
         mTextField.setOnAction(e -> doSend());
         mTextField.textProperty().addListener((obs, o, n) -> {
             updateCounter();
-            // Autocomplétion @mention
-            if (n.length() > 0 && n.charAt(n.length() - 1) == '@') {
-                showMentionPopup();
+            if (n.length() > 0) {
+                char lastChar = n.charAt(n.length() - 1);
+                // Autocomplétion @mention
+                if (lastChar == '@') {
+                    showMentionPopup();
+                }
+            }
+            // Autocomplétion emoji :code
+            if (n.length() > 1) {
+                int lastColon = n.lastIndexOf(':');
+                if (lastColon >= 0) {
+                    String partial = n.substring(lastColon);
+                    if (partial.length() > 1 && countChar(partial, ':') == 1) {
+                        showEmojiPopup(partial);
+                    }
+                }
             }
         });
 
@@ -70,6 +85,10 @@ public class MessageInputViewFX extends HBox implements IMessageInputView {
         String text = mTextField.getText().trim();
         if (text.isEmpty())
             return;
+
+        // Remplacer les codes emoji par les caractères Unicode
+        text = EmojiList.replaceEmojis(text);
+
         if (text.length() > MAX_LENGTH) {
             mCharCounter.setStyle("-fx-text-fill: #ed4245; -fx-font-size: 11px;");
             return;
@@ -111,5 +130,44 @@ public class MessageInputViewFX extends HBox implements IMessageInputView {
             popup.getItems().add(item);
         }
         popup.show(mTextField, javafx.geometry.Side.TOP, 0, 0);
+    }
+
+    /**
+     * Affiche le popup d'autocomplétion des emojis.
+     */
+    private void showEmojiPopup(String partial) {
+        List<Map.Entry<String, String>> results = EmojiList.search(partial);
+        if (results.isEmpty()) {
+            return;
+        }
+
+        ContextMenu popup = new ContextMenu();
+        for (Map.Entry<String, String> entry : results) {
+            MenuItem item = new MenuItem(entry.getValue() + "  " + entry.getKey());
+            item.setOnAction(e -> {
+                String current = mTextField.getText();
+                int lastColon = current.lastIndexOf(':');
+                if (lastColon >= 0) {
+                    mTextField.setText(current.substring(0, lastColon) + entry.getValue());
+                    mTextField.positionCaret(mTextField.getText().length());
+                }
+                updateCounter();
+            });
+            popup.getItems().add(item);
+        }
+        popup.show(mTextField, javafx.geometry.Side.TOP, 0, 0);
+    }
+
+    /**
+     * Compte le nombre d'occurrences d'un caractère dans une chaîne.
+     */
+    private int countChar(String s, char c) {
+        int count = 0;
+        for (int i = 0; i < s.length(); i++) {
+            if (s.charAt(i) == c) {
+                count++;
+            }
+        }
+        return count;
     }
 }

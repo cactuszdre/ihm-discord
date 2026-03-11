@@ -35,4 +35,11 @@ public interface IMessageView {
      * Définit l'utilisateur connecté (pour identifier les messages de l'auteur).
      */
     void setCurrentUser(User user);
+
+    /**
+     * Déclenche un easter egg dans l'interface.
+     *
+     * @param command la commande easter egg ("/party", "/flip", "/earthquake")
+     */
+    void triggerEasterEgg(String command);
 }

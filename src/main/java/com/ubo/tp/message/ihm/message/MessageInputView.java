@@ -7,22 +7,24 @@ import java.awt.event.ActionListener;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.util.List;
+import java.util.Map;
 
 import javax.swing.BorderFactory;
 import javax.swing.JLabel;
+import javax.swing.JMenuItem;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
-import javax.swing.JMenuItem;
 
 import main.java.com.ubo.tp.message.datamodel.User;
 import main.java.com.ubo.tp.message.ihm.common.DiscordButton;
 import main.java.com.ubo.tp.message.ihm.common.DiscordTextField;
 import main.java.com.ubo.tp.message.ihm.common.DiscordTheme;
+import main.java.com.ubo.tp.message.ihm.common.EmojiList;
 
 /**
  * Vue de saisie de message (MVC — View pure).
  * Barre de saisie avec champ texte, bouton envoi, compteur de caractères,
- * et menu d'autocomplétion des @mentions.
+ * menu d'autocomplétion des @mentions et des :emojis.
  */
 public class MessageInputView extends JPanel implements IMessageInputView {
 
@@ -50,6 +52,11 @@ public class MessageInputView extends JPanel implements IMessageInputView {
      * Popup de mentions.
      */
     private JPopupMenu mMentionPopup;
+
+    /**
+     * Popup d'emojis.
+     */
+    private JPopupMenu mEmojiPopup;
 
     /**
      * Liste des utilisateurs disponibles pour @mention.
@@ -102,9 +109,21 @@ public class MessageInputView extends JPanel implements IMessageInputView {
             @Override
             public void keyReleased(KeyEvent e) {
                 updateCounter();
-                // Détecter @ pour l'autocomplétion
+                String text = mTextField.getText();
+                // Détecter @ pour l'autocomplétion de mentions
                 if (e.getKeyChar() == '@') {
                     showMentionPopup();
+                }
+                // Détecter : pour l'autocomplétion d'emojis
+                else if (text.length() > 0) {
+                    int lastColon = text.lastIndexOf(':');
+                    if (lastColon >= 0) {
+                        String partial = text.substring(lastColon);
+                        // Ne montrer que si on est en train de taper un code emoji (pas déjà fermé)
+                        if (partial.length() > 1 && countChar(partial, ':') == 1) {
+                            showEmojiPopup(partial);
+                        }
+                    }
                 }
             }
         });
@@ -139,6 +158,9 @@ public class MessageInputView extends JPanel implements IMessageInputView {
         String text = mTextField.getText().trim();
         if (text.isEmpty())
             return;
+
+        // Remplacer les codes emoji par les caractères Unicode avant envoi
+        text = EmojiList.replaceEmojis(text);
 
         if (text.length() > MAX_MESSAGE_LENGTH) {
             // La View signale visuellement, mais ne valide pas la logique
@@ -206,5 +228,60 @@ public class MessageInputView extends JPanel implements IMessageInputView {
         }
 
         mMentionPopup.show(mTextField, 0, -mMentionPopup.getPreferredSize().height);
+    }
+
+    /**
+     * Affiche le popup d'autocomplétion des emojis.
+     *
+     * @param partial le début du code emoji (ex: ":sm")
+     */
+    private void showEmojiPopup(String partial) {
+        if (mEmojiPopup != null) {
+            mEmojiPopup.setVisible(false);
+        }
+
+        List<Map.Entry<String, String>> results = EmojiList.search(partial);
+        if (results.isEmpty()) {
+            return;
+        }
+
+        mEmojiPopup = new JPopupMenu();
+        mEmojiPopup.setBackground(DiscordTheme.BACKGROUND_TERTIARY);
+
+        for (final Map.Entry<String, String> entry : results) {
+            JMenuItem item = new JMenuItem(entry.getValue() + "  " + entry.getKey());
+            item.setBackground(DiscordTheme.BACKGROUND_TERTIARY);
+            item.setForeground(DiscordTheme.TEXT_NORMAL);
+            item.setFont(DiscordTheme.FONT_NORMAL);
+            item.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    // Remplacer le :code par l'emoji unicode
+                    String current = mTextField.getText();
+                    int lastColon = current.lastIndexOf(':');
+                    if (lastColon >= 0) {
+                        mTextField.setText(current.substring(0, lastColon) + entry.getValue());
+                    }
+                    mTextField.requestFocusInWindow();
+                    updateCounter();
+                }
+            });
+            mEmojiPopup.add(item);
+        }
+
+        mEmojiPopup.show(mTextField, 0, -mEmojiPopup.getPreferredSize().height);
+    }
+
+    /**
+     * Compte le nombre d'occurrences d'un caractère dans une chaîne.
+     */
+    private int countChar(String s, char c) {
+        int count = 0;
+        for (int i = 0; i < s.length(); i++) {
+            if (s.charAt(i) == c) {
+                count++;
+            }
+        }
+        return count;
     }
 }

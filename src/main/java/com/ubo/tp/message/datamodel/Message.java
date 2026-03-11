@@ -1,5 +1,9 @@
 package main.java.com.ubo.tp.message.datamodel;
 
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -30,6 +34,11 @@ public class Message extends AbstractMessageAppObject {
 	protected final String mText;
 
 	/**
+	 * Réactions sur ce message : emoji → set d'UUIDs des utilisateurs ayant réagi.
+	 */
+	protected Map<String, Set<UUID>> mReactions;
+
+	/**
 	 * Constructeur.
 	 *
 	 * @param sender    utilisateur à l'origine du message.
@@ -37,7 +46,8 @@ public class Message extends AbstractMessageAppObject {
 	 * @param text      corps du message.
 	 */
 	public Message(User sender, UUID recipient, String text) {
-		this(UUID.randomUUID(), sender, recipient, System.currentTimeMillis(), text);
+		this(UUID.randomUUID(), sender, recipient, System.currentTimeMillis(), text,
+				new HashMap<String, Set<UUID>>());
 	}
 
 	/**
@@ -50,11 +60,20 @@ public class Message extends AbstractMessageAppObject {
 	 * @param text         corps du message.
 	 */
 	public Message(UUID messageUuid, User sender, UUID recipient, long emissionDate, String text) {
+		this(messageUuid, sender, recipient, emissionDate, text, new HashMap<String, Set<UUID>>());
+	}
+
+	/**
+	 * Constructeur complet avec réactions.
+	 */
+	public Message(UUID messageUuid, User sender, UUID recipient, long emissionDate, String text,
+			Map<String, Set<UUID>> reactions) {
 		super(messageUuid);
 		mSender = sender;
 		mRecipient = recipient;
 		mEmissionDate = emissionDate;
 		mText = text;
+		mReactions = reactions != null ? reactions : new HashMap<String, Set<UUID>>();
 	}
 
 	/**
@@ -83,6 +102,42 @@ public class Message extends AbstractMessageAppObject {
 	 */
 	public long getEmissionDate() {
 		return this.mEmissionDate;
+	}
+
+	/**
+	 * @return les réactions sur ce message.
+	 */
+	public Map<String, Set<UUID>> getReactions() {
+		return mReactions;
+	}
+
+	/**
+	 * Définit les réactions.
+	 */
+	public void setReactions(Map<String, Set<UUID>> reactions) {
+		this.mReactions = reactions;
+	}
+
+	/**
+	 * Ajoute ou retire la réaction d'un utilisateur (toggle).
+	 *
+	 * @param emoji  l'emoji de la réaction
+	 * @param userId l'UUID de l'utilisateur
+	 */
+	public void toggleReaction(String emoji, UUID userId) {
+		Set<UUID> users = mReactions.get(emoji);
+		if (users == null) {
+			users = new HashSet<UUID>();
+			mReactions.put(emoji, users);
+		}
+		if (users.contains(userId)) {
+			users.remove(userId);
+			if (users.isEmpty()) {
+				mReactions.remove(emoji);
+			}
+		} else {
+			users.add(userId);
+		}
 	}
 
 	/**

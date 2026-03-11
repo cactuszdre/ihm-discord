@@ -114,6 +114,13 @@ public class MessageController implements IMessageActionListener, IDatabaseObser
         if (text.isEmpty())
             return;
 
+        // Détection des easter eggs
+        if (text.equalsIgnoreCase("/party") || text.equalsIgnoreCase("/flip")
+                || text.equalsIgnoreCase("/earthquake")) {
+            mMessageListView.triggerEasterEgg(text.toLowerCase());
+            return;
+        }
+
         // Validation taille (SRS-MAP-MSG-008)
         if (text.length() > MAX_MESSAGE_LENGTH) {
             mMessageListView.showError("Le message ne peut pas dépasser " + MAX_MESSAGE_LENGTH + " caractères.");
@@ -149,6 +156,19 @@ public class MessageController implements IMessageActionListener, IDatabaseObser
     public void onSearchMessage(String query) {
         this.mCurrentSearchQuery = query.toLowerCase();
         refreshMessages();
+    }
+
+    @Override
+    public void onAddReaction(Message message, String emoji) {
+        User currentUser = mSession.getConnectedUser();
+        if (currentUser == null)
+            return;
+
+        // Toggle la réaction
+        message.toggleReaction(emoji, currentUser.getUuid());
+
+        // Persister le message avec la nouvelle réaction
+        mDataManager.sendMessage(message);
     }
 
     // ========== IDatabaseObserver ==========
